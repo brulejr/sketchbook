@@ -16,8 +16,9 @@
 #include <Ethernet.h>
 #include <RestServer.h>
 
-#include <Wire.h>
-#include <RTClib.h>
+#include <Time.h>
+#include <Wire.h>  
+#include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
 
 #include <OneWire.h>
 #include <DallasTemperature.h> 
@@ -33,10 +34,10 @@
 
 #define LED_STATUS 9
 
-#define LOOP_DELAY 0
+#define LOOP_DELAY 100
 
 struct SensorData {
-  DateTime timestamp;
+  time_t timestamp;
   unsigned int ldr;
   unsigned int hall;
   float tempInsideC;
@@ -55,9 +56,6 @@ IPAddress subnet(255,255,255,0);
 
 // RESTful Server
 RestServer restServer(REST_SERVER_PORT);
-
-// Real-time Clock
-RTC_DS1307 RTC;
 
 // Dallas OneWire configuration
 OneWire oneWire(DPIN_ONEWIRE);
@@ -80,11 +78,16 @@ void setup() {
   
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
-  }
+  while (!Serial) ; // Needed for Leonardo only
   Serial.print("Networked Environment Sensor - ");
   Serial.println(VERSION);
+  
+  // synchronize clock with RTC
+  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+  if (timeStatus() != timeSet) 
+     Serial.println("Unable to sync with the RTC");
+  else
+     Serial.println("RTC has set the system time");
   
   // sensor configurations
   pinMode(APIN_LDR, INPUT);
@@ -92,11 +95,6 @@ void setup() {
 
   // output configuration
   pinMode(LED_STATUS, OUTPUT);
-  
-  // start up real-time clock
-  Wire.begin();
-  RTC.begin();
-  //RTC.adjust(DateTime(__DATE__, __TIME__));
   
   // start up the one-wire sensors
   oneWireSensors.begin();
@@ -126,8 +124,8 @@ void setup() {
 void loop() {
   interogate_sensors();
   update_status();
-  restServer.process();
   delay(LOOP_DELAY);
+  restServer.process();
 }
 
 
@@ -199,7 +197,7 @@ void handle_thresholds(RestRequest *request, EthernetClient *client) {
 void interogate_sensors() {
   
   // read real-time clock
-  sensorData.timestamp = RTC.now();
+  sensorData.timestamp = now();
   
   // read light level
   sensorData.ldr = analogRead(APIN_LDR);
@@ -214,16 +212,16 @@ void interogate_sensors() {
 }
 
 //------------------------------------------------------------------------------
-void sprintf_timestamp_field(char *buffer, boolean firstField, char *field, DateTime timestamp) {
+void sprintf_timestamp_field(char *buffer, boolean firstField, char *field, time_t timestamp) {
   sprintf(buffer, "%s\"%s\": \"%4d-%02d-%02dT%02d:%02d:%02d%s\"",
     (firstField) ? ", " : "",
     field, 
-    timestamp.year(), 
-    timestamp.month(), 
-    timestamp.day(),
-    timestamp.hour(),
-    timestamp.minute(),
-    timestamp.second(),
+    year(timestamp), 
+    month(timestamp), 
+    day(timestamp),
+    hour(timestamp),
+    minute(timestamp),
+    second(timestamp),
     TIMEZONE);
 }
 
