@@ -34,7 +34,7 @@
 
 #define LED_STATUS 9
 
-#define LOOP_DELAY 100
+#define LOOP_DELAY 0
 
 struct SensorData {
   time_t timestamp;
@@ -124,8 +124,8 @@ void setup() {
 void loop() {
   interogate_sensors();
   update_status();
-  delay(LOOP_DELAY);
   restServer.process();
+  delay(LOOP_DELAY);
 }
 
 
@@ -200,7 +200,7 @@ void interogate_sensors() {
   sensorData.timestamp = now();
   
   // read light level
-  sensorData.ldr = analogRead(APIN_LDR);
+  sensorData.ldr = map(analogRead(APIN_LDR), 0, 1023, 0, 255);
 
   // read door status
   sensorData.hall = digitalRead(DPIN_HALL);
