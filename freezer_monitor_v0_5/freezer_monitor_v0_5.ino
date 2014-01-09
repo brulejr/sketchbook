@@ -35,6 +35,7 @@
 #define LOOP_DELAY 0
 
 struct SensorData {
+  boolean available;
   unsigned int ldr;
   unsigned int hall;
   float tempInsideC;
@@ -72,6 +73,8 @@ SensorThresholds sensorThresholds;
 // setup the arduino board
 //
 void setup() {
+  
+  sensorData.available = false;
   
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
@@ -116,8 +119,6 @@ void setup() {
 // main processing loop
 //
 void loop() {
-  //interogate_sensors();
-  //update_status();
   restServer.process();
   delay(LOOP_DELAY);
 }
@@ -160,6 +161,7 @@ void handle_healthcheck(RestRequest *request, EthernetClient *client) {
 
 //------------------------------------------------------------------------------
 void handle_sensors(RestRequest *request, EthernetClient *client) {
+  while (!sensorData.available) {};
   char content[128] = { '\0' };
   char buffer[128] = { '\0' };
   strcat(content, "{");
@@ -190,6 +192,9 @@ void handle_thresholds(RestRequest *request, EthernetClient *client) {
 
 //------------------------------------------------------------------------------
 void interogate_sensors() {
+
+  // block access to sensor data  
+  sensorData.available = false;
   
   // read light level
   sensorData.ldr = map(analogRead(APIN_LDR), 0, 1023, 0, 255);
@@ -200,6 +205,9 @@ void interogate_sensors() {
   // read one-wire sensors
   oneWireSensors.requestTemperatures();
   sensorData.tempInsideC = oneWireSensors.getTempC(thermometerInside);
+
+  // enable access to sensor data  
+  sensorData.available = true;
  
   update_status(); 
   
