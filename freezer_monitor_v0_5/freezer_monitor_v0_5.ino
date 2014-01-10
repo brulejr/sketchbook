@@ -66,6 +66,9 @@ DeviceAddress thermometerInside  = { 0x10, 0x9B, 0x96, 0x53, 0x02, 0x08, 0x00, 0
 SensorData sensorData;
 SensorThresholds sensorThresholds;
 
+char content[64];
+char buffer[128];
+
 
 /******************************************************************************
  * Main Arduino Subroutines
@@ -158,8 +161,7 @@ void default_sensor_thresholds() {
 
 //------------------------------------------------------------------------------
 void handle_healthcheck(RestRequest *request, EthernetClient *client) {
-  char content[64] = { '\0' };
-  char buffer[128] = { '\0' };
+  reset_buffers();
   strcat(content, "{");
   sprintf_string_field(buffer, true, "health", "OK");
   strcat(content, buffer);  
@@ -172,8 +174,7 @@ void handle_healthcheck(RestRequest *request, EthernetClient *client) {
 //------------------------------------------------------------------------------
 void handle_sensors(RestRequest *request, EthernetClient *client) {
   while (!sensorData.available) {};
-  char content[128] = { '\0' };
-  char buffer[128] = { '\0' };
+  reset_buffers();
   strcat(content, "{");
   sprintf_int_field(buffer, true, "status", check_status());
   strcat(content, buffer);  
@@ -189,8 +190,7 @@ void handle_sensors(RestRequest *request, EthernetClient *client) {
 
 //------------------------------------------------------------------------------
 void handle_thresholds(RestRequest *request, EthernetClient *client) {
-  char content[128] = { '\0' };
-  char buffer[128] = { '\0' };
+  reset_buffers();
   strcat(content, "{");
   sprintf_int_field(buffer, true, "light", sensorThresholds.light);
   strcat(content, buffer);  
@@ -225,6 +225,12 @@ void interogate_sensors() {
  
   update_status(); 
   
+}
+
+//------------------------------------------------------------------------------
+void reset_buffers() {
+  content[0] = '\0';
+  buffer[0] = '\0';
 }
 
 //------------------------------------------------------------------------------
