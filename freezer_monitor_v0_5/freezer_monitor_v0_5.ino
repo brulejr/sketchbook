@@ -39,6 +39,7 @@ struct SensorData {
   unsigned int ldr;
   unsigned int hall;
   float tempInsideC;
+  float tempOutsideC;
 };
 
 struct SensorThresholds {
@@ -46,6 +47,8 @@ struct SensorThresholds {
   unsigned int door;
   float minTempInsideC;
   float maxTempInsideC;
+  float minTempOutsideC;
+  float maxTempOutsideC;
 };
 
 // Controller MAC address - must be unique on network for DHCP to work
@@ -61,6 +64,8 @@ RestServer restServer(REST_SERVER_PORT);
 OneWire oneWire(DPIN_ONEWIRE);
 DallasTemperature oneWireSensors(&oneWire);
 DeviceAddress thermometerInside  = { 0x10, 0x9B, 0x96, 0x53, 0x02, 0x08, 0x00, 0xF0 };
+DeviceAddress thermometerOutside  = { 0x10, 0x74, 0x6C, 0x53, 0x02, 0x08, 0x00, 0xE6 };
+
 
 // container for sensor data
 SensorData sensorData;
@@ -155,8 +160,10 @@ int check_status() {
 void default_sensor_thresholds() {
   sensorThresholds.light = 50;
   sensorThresholds.door = HIGH;
-  sensorThresholds.minTempInsideC = 19.00;
-  sensorThresholds.maxTempInsideC = 20.00;
+  sensorThresholds.minTempInsideC = 0.00;
+  sensorThresholds.maxTempInsideC = 2.00;
+  sensorThresholds.minTempOutsideC = 19.00;
+  sensorThresholds.maxTempOutsideC = 20.00;
 }
 
 //------------------------------------------------------------------------------
@@ -184,6 +191,8 @@ void handle_sensors(RestRequest *request, EthernetClient *client) {
   strcat(content, buffer);  
   sprintf_float_field(buffer, false, "tempInsideC", sensorData.tempInsideC, 100);
   strcat(content, buffer);  
+  sprintf_float_field(buffer, false, "tempOutsideC", sensorData.tempOutsideC, 100);
+  strcat(content, buffer);  
   strcat(content, "}");
   restServer.generate_response(client, content);
 }
@@ -199,6 +208,10 @@ void handle_thresholds(RestRequest *request, EthernetClient *client) {
   sprintf_float_field(buffer, false, "minTempInsideC", sensorThresholds.minTempInsideC, 100);
   strcat(content, buffer);  
   sprintf_float_field(buffer, false, "maxTempInsideC", sensorThresholds.maxTempInsideC, 100);
+  strcat(content, buffer);  
+  sprintf_float_field(buffer, false, "minTempOutsideC", sensorThresholds.minTempOutsideC, 100);
+  strcat(content, buffer);  
+  sprintf_float_field(buffer, false, "maxTempOutsideC", sensorThresholds.maxTempOutsideC, 100);
   strcat(content, buffer);  
   strcat(content, "}");
   restServer.generate_response(client, content);
@@ -219,6 +232,7 @@ void interogate_sensors() {
   // read one-wire sensors
   oneWireSensors.requestTemperatures();
   sensorData.tempInsideC = oneWireSensors.getTempC(thermometerInside);
+  sensorData.tempOutsideC = oneWireSensors.getTempC(thermometerOutside);
 
   // enable access to sensor data  
   sensorData.available = true;
