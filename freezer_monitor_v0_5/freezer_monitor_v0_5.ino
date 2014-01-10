@@ -71,8 +71,8 @@ DeviceAddress thermometerOutside  = { 0x10, 0x74, 0x6C, 0x53, 0x02, 0x08, 0x00, 
 SensorData sensorData;
 SensorThresholds sensorThresholds;
 
-char content[64];
-char buffer[128];
+char content[128];
+char buffer[64];
 
 
 /******************************************************************************
