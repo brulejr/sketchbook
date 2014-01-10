@@ -44,6 +44,8 @@ struct SensorData {
 struct SensorThresholds {
   unsigned int light;
   unsigned int door;
+  float minTempInsideC;
+  float maxTempInsideC;
 };
 
 // Controller MAC address - must be unique on network for DHCP to work
@@ -137,6 +139,12 @@ int check_status() {
   if (sensorData.hall == sensorThresholds.door) {
     status = HIGH;
   }
+  if (sensorData.tempInsideC < sensorThresholds.minTempInsideC) {
+    status = HIGH;
+  }
+  if (sensorData.tempInsideC > sensorThresholds.maxTempInsideC) {
+    status = HIGH;
+  }
   return status;
 }
 
@@ -144,6 +152,8 @@ int check_status() {
 void default_sensor_thresholds() {
   sensorThresholds.light = 50;
   sensorThresholds.door = HIGH;
+  sensorThresholds.minTempInsideC = 19.00;
+  sensorThresholds.maxTempInsideC = 20.00;
 }
 
 //------------------------------------------------------------------------------
@@ -179,12 +189,16 @@ void handle_sensors(RestRequest *request, EthernetClient *client) {
 
 //------------------------------------------------------------------------------
 void handle_thresholds(RestRequest *request, EthernetClient *client) {
-  char content[32] = { '\0' };
-  char buffer[16] = { '\0' };
+  char content[128] = { '\0' };
+  char buffer[128] = { '\0' };
   strcat(content, "{");
   sprintf_int_field(buffer, true, "light", sensorThresholds.light);
   strcat(content, buffer);  
   sprintf_int_field(buffer, false, "door", sensorThresholds.door);
+  strcat(content, buffer);  
+  sprintf_float_field(buffer, false, "minTempInsideC", sensorThresholds.minTempInsideC, 100);
+  strcat(content, buffer);  
+  sprintf_float_field(buffer, false, "maxTempInsideC", sensorThresholds.maxTempInsideC, 100);
   strcat(content, buffer);  
   strcat(content, "}");
   restServer.generate_response(client, content);
