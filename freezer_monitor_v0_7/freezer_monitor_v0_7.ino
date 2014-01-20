@@ -1,12 +1,12 @@
 /* -----------------------------------------------------------------------------
    Freezer Monitor
   
-   Accepts item numbers from PS/2 connection and submits initiates an Item
-   process via a RESTful web service.
+   Monitors several sensors on a freezer watching for out-of-ordinary behavior.
  
    Circuit:
    * RFM12B attached to digital pins 10, 11, 12, 13
-   * LDR sensor attached to analog pin 0
+   * Battery voltage monitor attached to analog pin 0
+   * LDR sensor attached to analog pin 1
    * OneWire bus attached to digital pin 3
    * Hall Effect sensor attached to digital pin 7
    * Sensor Status LED attached to digital pin 8
@@ -28,19 +28,24 @@
 #define FREQUENCY  RF12_915MHZ //Match this with the version of your Moteino! (others: RF12_433MHZ, RF12_915MHZ)
 #define KEY        "ABCDABCDABCDABCD"
 #define ACK_TIME   50  // # of ms to wait for an ack
-#define TRANSMITPERIOD 600 //transmit a packet to gateway so often (in ms)
+#define TRANSMITPERIOD 5000 //transmit a packet to gateway so often (in ms)
 
 #define SERIAL_BAUD      115200
 
-#define BUFFER_SIZE  50
+#define BUFFER_SIZE  64
 #define CMD_BOOT     0x10
-#define CMD_READING  0x11
+#define CMD_CONFIG   0x11
+#define CMD_READING  0x21
+#define PRECISION    100
 
-#define APIN_LDR        0  // data connection for photocell
+#define APIN_BATTERY    0  // data connection for photocell
+#define APIN_LDR        1  // data connection for photocell
 #define DPIN_ONEWIRE    3  // data connection for the Dallas OneWire bus
 #define DPIN_HALL       7  // data connection for hall effect
 #define DPIN_SENSOR_LED 8
 #define DPIN_RF_LED     9
+
+#define VDD_RATIO 1.622
 
 struct SensorData {
   boolean available;
@@ -48,6 +53,7 @@ struct SensorData {
   unsigned int hall;
   float tempInsideC;
   float tempOutsideC;
+  float batteryVoltage;
 };
 
 struct SensorThresholds {
@@ -60,7 +66,6 @@ struct SensorThresholds {
 };
 
 // rfm12b radio
-int interPacketDelay = 1000; //wait this many ms between sending packets
 char input = 0;
 RFM12B radio;
 
@@ -113,7 +118,7 @@ void setup() {
 //
 void loop() {
 
-  //check for any received packets
+  // process inbound messages
   if (radio.ReceiveComplete())
   {
     if (radio.CRCPass())
@@ -131,27 +136,49 @@ void loop() {
     }
   }
   
-  if ((int)(millis()/TRANSMITPERIOD) > lastPeriod)
-  {
+  // generate outbound messages
+  if ((int)(millis()/TRANSMITPERIOD) > lastPeriod) {
     lastPeriod++;
-    //Send data periodically to GATEWAY
-    Serial.print("Sending[");
-    Serial.print(sendSize);
-    Serial.print("]: ");
-    for(byte i = 0; i < sendSize; i++)
-      Serial.print((char)payload[i]);
     
-    requestACK = ((sendSize % 3) == 0); //request ACK every 3rd xmission
-    radio.Send(GATEWAYID, payload, sendSize, requestACK);
-    if (requestACK)
-    {
-      Serial.print(" - waiting for ACK...");
-      if (waitForAck(GATEWAYID)) Serial.print("ok!");
-      else Serial.print("nothing...");
+    // assemble sensor reading message
+    int decBatteryVoltage = int(sensorData.batteryVoltage);
+    unsigned int fracBatteryVoltage;
+    if(sensorData.batteryVoltage >= 0) {
+        fracBatteryVoltage = (sensorData.batteryVoltage - int(sensorData.batteryVoltage)) * PRECISION;
+    } else {
+        fracBatteryVoltage = (int(sensorData.batteryVoltage) - sensorData.batteryVoltage) * PRECISION;
     }
-    
-    sendSize = (sendSize + 1) % 31;
-    Serial.println();
+    int decTempInsideC = int(sensorData.tempInsideC);
+    unsigned int fracTempInsideC;
+    if(sensorData.tempInsideC >= 0) {
+        fracTempInsideC = (sensorData.tempInsideC - int(sensorData.tempInsideC)) * PRECISION;
+    } else {
+        fracTempInsideC = (int(sensorData.tempInsideC) - sensorData.tempInsideC) * PRECISION;
+    }
+    int decTempOutsideC = int(sensorData.tempOutsideC);
+    unsigned int fracTempOutsideC;
+    if(sensorData.tempOutsideC >= 0) {
+        fracTempOutsideC = (sensorData.tempOutsideC - int(sensorData.tempOutsideC)) * PRECISION;
+    } else {
+        fracTempOutsideC = (int(sensorData.tempOutsideC) - sensorData.tempOutsideC) * PRECISION;
+    }
+    sprintf(buffer, "0x%02x:0x%02x:%x:%d.%02d:%d.%02d:%d.%02d", 
+      CMD_READING, 
+      sensorData.ldr, 
+      sensorData.hall,
+      decBatteryVoltage, fracBatteryVoltage,
+      decTempInsideC, fracTempInsideC, 
+      decTempOutsideC, fracTempOutsideC);
+    Serial.print("reading [");
+    Serial.print(buffer);
+    Serial.print("]");
+
+    // send sensor reading message to gateway    
+    radio.Send(GATEWAYID, buffer, strlen(buffer), true);
+    Serial.print(" - waiting for ACK...");
+    if (waitForAck(GATEWAYID)) Serial.println("ok!");
+    else Serial.println("nothing...");
+
     blink_led(DPIN_RF_LED, 5);
     log();
   }
@@ -190,13 +217,15 @@ int check_status() {
 void log() {
   Serial.print("Light: "); 
   Serial.print(sensorData.ldr);
-  Serial.print("\t Hall: "); 
+  Serial.print(" Hall: "); 
   Serial.print(sensorData.hall);
-  Serial.print("\t Temp: "); 
+  Serial.print(" Temp: "); 
   Serial.print(sensorData.tempInsideC);
   Serial.print("C, "); 
   Serial.print(sensorData.tempOutsideC);
-  Serial.println("C");
+  Serial.print("C");
+  Serial.print(" Battery: "); 
+  Serial.println(sensorData.batteryVoltage);
 }
 
 //------------------------------------------------------------------------------
@@ -216,6 +245,11 @@ void interogate_sensors() {
   oneWireSensors.requestTemperatures();
   sensorData.tempInsideC = oneWireSensors.getTempC(thermometerInside);
   sensorData.tempOutsideC = oneWireSensors.getTempC(thermometerOutside);
+  
+  // read battery voltage
+  int val = analogRead(APIN_BATTERY);
+  float pinVoltage = val * 0.00488;
+  sensorData.batteryVoltage = pinVoltage * VDD_RATIO;
 
   // enable access to sensor data  
   sensorData.available = true;
