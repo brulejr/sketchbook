@@ -36,19 +36,23 @@
 #define CMD_BOOT     0x10
 #define CMD_CONFIG   0x11
 #define CMD_READING  0x21
+#define CMD_ALERT    0x31
 #define PRECISION    100
 
-#define APIN_BATTERY    0  // data connection for photocell
+#define APIN_BATTERY    0  // data connection for battery
 #define APIN_LDR        1  // data connection for photocell
 #define DPIN_ONEWIRE    3  // data connection for the Dallas OneWire bus
 #define DPIN_HALL       7  // data connection for hall effect
 #define DPIN_SENSOR_LED 8
 #define DPIN_RF_LED     9
 
+#define DEFAULT_LED_DELAY 5
+
 #define VDD_RATIO 1.622
 
 struct SensorData {
   boolean available;
+  boolean status;
   unsigned int ldr;
   unsigned int hall;
   float tempInsideC;
@@ -66,14 +70,8 @@ struct SensorThresholds {
 };
 
 // rfm12b radio
-char input = 0;
 RFM12B radio;
-
-boolean requestACK = false;
-byte sendSize=0;
-char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char buffer[BUFFER_SIZE];
-
 long lastPeriod = -1;
 
 // dallas onewire configuration
@@ -132,7 +130,7 @@ void loop() {
         radio.SendACK();
         Serial.print(" - ACK sent.");
       }
-      blink_led(DPIN_RF_LED, 5);
+      blink_led(DPIN_RF_LED, DEFAULT_LED_DELAY);
     }
   }
   
@@ -140,47 +138,12 @@ void loop() {
   if ((int)(millis()/TRANSMITPERIOD) > lastPeriod) {
     lastPeriod++;
     
-    // assemble sensor reading message
-    int decBatteryVoltage = int(sensorData.batteryVoltage);
-    unsigned int fracBatteryVoltage;
-    if(sensorData.batteryVoltage >= 0) {
-        fracBatteryVoltage = (sensorData.batteryVoltage - int(sensorData.batteryVoltage)) * PRECISION;
-    } else {
-        fracBatteryVoltage = (int(sensorData.batteryVoltage) - sensorData.batteryVoltage) * PRECISION;
+    if (!sensorData.status) {
+      send_reading(CMD_ALERT);
+      blink_led(DPIN_RF_LED, DEFAULT_LED_DELAY);
+      log();
     }
-    int decTempInsideC = int(sensorData.tempInsideC);
-    unsigned int fracTempInsideC;
-    if(sensorData.tempInsideC >= 0) {
-        fracTempInsideC = (sensorData.tempInsideC - int(sensorData.tempInsideC)) * PRECISION;
-    } else {
-        fracTempInsideC = (int(sensorData.tempInsideC) - sensorData.tempInsideC) * PRECISION;
-    }
-    int decTempOutsideC = int(sensorData.tempOutsideC);
-    unsigned int fracTempOutsideC;
-    if(sensorData.tempOutsideC >= 0) {
-        fracTempOutsideC = (sensorData.tempOutsideC - int(sensorData.tempOutsideC)) * PRECISION;
-    } else {
-        fracTempOutsideC = (int(sensorData.tempOutsideC) - sensorData.tempOutsideC) * PRECISION;
-    }
-    sprintf(buffer, "0x%02x:0x%02x:%x:%d.%02d:%d.%02d:%d.%02d", 
-      CMD_READING, 
-      sensorData.ldr, 
-      sensorData.hall,
-      decBatteryVoltage, fracBatteryVoltage,
-      decTempInsideC, fracTempInsideC, 
-      decTempOutsideC, fracTempOutsideC);
-    Serial.print("reading [");
-    Serial.print(buffer);
-    Serial.print("]");
 
-    // send sensor reading message to gateway    
-    radio.Send(GATEWAYID, buffer, strlen(buffer), true);
-    Serial.print(" - waiting for ACK...");
-    if (waitForAck(GATEWAYID)) Serial.println("ok!");
-    else Serial.println("nothing...");
-
-    blink_led(DPIN_RF_LED, 5);
-    log();
   }
   
 }
@@ -196,18 +159,18 @@ void blink_led(byte pin, int delay_ms) {
 // Compares each sensor's value against its expectation, returning true if the
 // values are acceptable or false if they fall outside the expectations.
 int check_status() {
-  int status = LOW;
+  int status = HIGH;
   if (sensorData.ldr > sensorThresholds.light) {
-    status = HIGH;
+    status = LOW;
   }
   if (sensorData.hall == sensorThresholds.door) {
-    status = HIGH;
+    status = LOW;
   }
   if (sensorData.tempInsideC < sensorThresholds.minTempInsideC) {
-    status = HIGH;
+    status = LOW;
   }
   if (sensorData.tempInsideC > sensorThresholds.maxTempInsideC) {
-    status = HIGH;
+    status = LOW;
   }
   return status;
 }
@@ -215,16 +178,18 @@ int check_status() {
 //------------------------------------------------------------------------------
 // Logs the current sensor values.
 void log() {
-  Serial.print("Light: "); 
+  Serial.print("Status: "); 
+  Serial.print(sensorData.status);
+  Serial.print(", Light: "); 
   Serial.print(sensorData.ldr);
-  Serial.print(" Hall: "); 
+  Serial.print(", Hall: "); 
   Serial.print(sensorData.hall);
-  Serial.print(" Temp: "); 
+  Serial.print(", Temp: "); 
   Serial.print(sensorData.tempInsideC);
   Serial.print("C, "); 
   Serial.print(sensorData.tempOutsideC);
   Serial.print("C");
-  Serial.print(" Battery: "); 
+  Serial.print(", Battery: "); 
   Serial.println(sensorData.batteryVoltage);
 }
 
@@ -255,8 +220,53 @@ void interogate_sensors() {
   sensorData.available = true;
  
   // update status led
-  digitalWrite(DPIN_SENSOR_LED, check_status()); 
+  sensorData.status = check_status();
+  digitalWrite(DPIN_SENSOR_LED, !sensorData.status); 
   
+}
+
+//------------------------------------------------------------------------------
+void send_reading(unsigned int command) {
+  
+    // assemble sensor reading message
+    int decBatteryVoltage = int(sensorData.batteryVoltage);
+    unsigned int fracBatteryVoltage;
+    if(sensorData.batteryVoltage >= 0) {
+        fracBatteryVoltage = (sensorData.batteryVoltage - int(sensorData.batteryVoltage)) * PRECISION;
+    } else {
+        fracBatteryVoltage = (int(sensorData.batteryVoltage) - sensorData.batteryVoltage) * PRECISION;
+    }
+    int decTempInsideC = int(sensorData.tempInsideC);
+    unsigned int fracTempInsideC;
+    if(sensorData.tempInsideC >= 0) {
+        fracTempInsideC = (sensorData.tempInsideC - int(sensorData.tempInsideC)) * PRECISION;
+    } else {
+        fracTempInsideC = (int(sensorData.tempInsideC) - sensorData.tempInsideC) * PRECISION;
+    }
+    int decTempOutsideC = int(sensorData.tempOutsideC);
+    unsigned int fracTempOutsideC;
+    if(sensorData.tempOutsideC >= 0) {
+        fracTempOutsideC = (sensorData.tempOutsideC - int(sensorData.tempOutsideC)) * PRECISION;
+    } else {
+        fracTempOutsideC = (int(sensorData.tempOutsideC) - sensorData.tempOutsideC) * PRECISION;
+    }
+    sprintf(buffer, "0x%02x:%x:0x%02x:%x:%d.%02d:%d.%02d:%d.%02d", 
+      command,
+      sensorData.status,
+      sensorData.ldr, 
+      sensorData.hall,
+      decBatteryVoltage, fracBatteryVoltage,
+      decTempInsideC, fracTempInsideC, 
+      decTempOutsideC, fracTempOutsideC);
+    Serial.print("reading [");
+    Serial.print(buffer);
+    Serial.print("]");
+    
+    // transmit reading to gateway
+    radio.Send(GATEWAYID, buffer, strlen(buffer), true);
+    Serial.print(" : waiting for ACK - ");
+    if (waitForAck(GATEWAYID)) Serial.println("<OK>");
+    else Serial.println("<NONE>");
 }
 
 //------------------------------------------------------------------------------
@@ -289,7 +299,7 @@ void setup_sensor_thresholds() {
   buffer[0] = MYID;
   buffer[1] = CMD_BOOT;
   radio.Wakeup();
-  radio.Send(GATEWAYID, payload, 10, true);
+  radio.Send(GATEWAYID, buffer, 10, true);
   if (waitForAck(GATEWAYID)) {
     Serial.println("RF Gateway Found - Loading sensor defaults...");
   } else {
