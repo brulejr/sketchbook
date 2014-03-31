@@ -22,7 +22,7 @@
 
 #define VERSION "v0.7"
 
-#define MYID       2       // node ID used for this unit
+#define NODEID       2       // node ID used for this unit
 #define NETWORKID  99
 #define GATEWAYID  1
 #define FREQUENCY  RF12_915MHZ //Match this with the version of your Moteino! (others: RF12_433MHZ, RF12_915MHZ)
@@ -250,7 +250,8 @@ void send_reading(unsigned int command) {
     } else {
         fracTempOutsideC = (int(sensorData.tempOutsideC) - sensorData.tempOutsideC) * PRECISION;
     }
-    sprintf(buffer, "0x%02x:%x:0x%02x:%x:%d.%02d:%d.%02d:%d.%02d", 
+    sprintf(buffer, "%d:0x%02x:%x:0x%02x:%x:%d.%02d:%d.%02d:%d.%02d", 
+      NODEID,
       command,
       sensorData.status,
       sensorData.ldr, 
@@ -272,7 +273,7 @@ void send_reading(unsigned int command) {
 //------------------------------------------------------------------------------
 // Initializes the RFM12B radio.
 void setup_radio() {
-  radio.Initialize(MYID, FREQUENCY, NETWORKID, 0);
+  radio.Initialize(NODEID, FREQUENCY, NETWORKID, 0);
   radio.Encrypt((byte*)KEY);
   sprintf(buffer, "Transmitting at %d Mhz...", FREQUENCY == RF12_433MHZ ? 433 : FREQUENCY== RF12_868MHZ ? 868 : 915);
   Serial.println(buffer);
@@ -296,7 +297,7 @@ void setup_sensors() {
 
 //------------------------------------------------------------------------------
 void setup_sensor_thresholds() {
-  buffer[0] = MYID;
+  buffer[0] = NODEID;
   buffer[1] = CMD_BOOT;
   radio.Wakeup();
   radio.Send(GATEWAYID, buffer, 10, true);

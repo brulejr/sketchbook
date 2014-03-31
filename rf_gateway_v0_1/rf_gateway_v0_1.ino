@@ -17,11 +17,10 @@
 
 #define SERIAL_BAUD 115200
 
-#define BUFFER_SIZE  64
+#define BUFFER_SIZE 128
 
 char buffer[BUFFER_SIZE];
 
-uint8_t input[RF12_MAXDATA];
 RFM12B radio;
 
 byte recvCount = 0;
@@ -55,28 +54,16 @@ void setup() {
 // main processing loop
 //
 void loop() {
-  if (radio.ReceiveComplete())
-  {
-    if (radio.CRCPass())
-    {
+  
+  // process inbound messages
+  if (radio.ReceiveComplete()) {
+    if (radio.CRCPass()) {
       digitalWrite(9,1);
-      Serial.print('[');Serial.print(radio.GetSender(), DEC);Serial.print("] ");
-      for (byte i = 0; i < *radio.DataLen; i++)
-        Serial.print((char)radio.Data[i]);
+      assemble_message();
 
-      if (radio.ACKRequested())
-      {
+      if (radio.ACKRequested()) {
         byte theNodeID = radio.GetSender();
         radio.SendACK();
-        //when a node requests an ACK, respond to the ACK and also send a packet requesting an ACK
-        //This way both TX/RX NODE functions are tested on 1 end at the GATEWAY
-        Serial.print(" - ACK sent. Sending packet to node ");
-        Serial.print(theNodeID);
-        delay(10);
-        radio.Send(theNodeID, "ACK TEST", 8, true);
-        Serial.print(" - waiting for ACK...");
-        if (waitForAck(theNodeID)) Serial.print("ok!");
-        else Serial.print("nothing...");
       }
       delay(5);
       digitalWrite(9,0);
@@ -97,6 +84,29 @@ static bool waitForAck(byte theNodeID) {
   return false;
 }
 
+void assemble_message() {
+  
+  String raw = String((char*) radio.Data);
+  raw = raw.substring(0, *radio.DataLen);
+  int sep1 = raw.indexOf(":");
+  int sep2 = raw.indexOf(":", sep1 + 1);
+  
+  String content = "{";
+  content += "\"node\":" + raw.substring(0, sep1);
+  content += ",\"cmd\":\"" + raw.substring(sep1 + 1, sep2) + "\"";
+  content += ",\"data\":\"" + raw.substring(sep2 + 1, raw.length()) + "\"";
+  content += "}";
+  Serial.print("raw<");
+  Serial.print(raw.length());
+  Serial.print("> - ");
+  Serial.println(raw);
+  Serial.print("content<");
+  Serial.print(content.length());
+  Serial.print("> - ");
+  Serial.println(content);
+  
+  content.toCharArray(buffer, BUFFER_SIZE);
+}
 
 //------------------------------------------------------------------------------
 // Initializes the RFM12B radio.
