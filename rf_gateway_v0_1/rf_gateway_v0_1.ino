@@ -5,6 +5,8 @@
 // communication is functional on the slave Moteino
 
 #include <RFM12B.h>
+#include <SPI.h>
+//#include <Ethernet.h>
 
 
 #define VERSION "v0.7"
@@ -19,11 +21,12 @@
 
 #define BUFFER_SIZE 128
 
+//byte mac[] = { 0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 };
+
 char buffer[BUFFER_SIZE];
 
 RFM12B radio;
-
-byte recvCount = 0;
+//EthernetClient client;
 
 
 /******************************************************************************
@@ -43,6 +46,9 @@ void setup() {
     
   // radio initialization
   setup_radio();
+    
+  // ethernet initialization
+  //setup_ethernet();
   
   // setup flashy pin
   pinMode(9, OUTPUT);
@@ -59,7 +65,9 @@ void loop() {
   if (radio.ReceiveComplete()) {
     if (radio.CRCPass()) {
       digitalWrite(9,1);
-      assemble_message();
+      Serial.print('[');Serial.print(radio.GetSender(), DEC);Serial.print("] ");
+      for (byte i = 0; i < *radio.DataLen; i++)
+        Serial.print((char)radio.Data[i]);
 
       if (radio.ACKRequested()) {
         byte theNodeID = radio.GetSender();
@@ -84,29 +92,21 @@ static bool waitForAck(byte theNodeID) {
   return false;
 }
 
-void assemble_message() {
-  
-  String raw = String((char*) radio.Data);
-  raw = raw.substring(0, *radio.DataLen);
-  int sep1 = raw.indexOf(":");
-  int sep2 = raw.indexOf(":", sep1 + 1);
-  
-  String content = "{";
-  content += "\"node\":" + raw.substring(0, sep1);
-  content += ",\"cmd\":\"" + raw.substring(sep1 + 1, sep2) + "\"";
-  content += ",\"data\":\"" + raw.substring(sep2 + 1, raw.length()) + "\"";
-  content += "}";
-  Serial.print("raw<");
-  Serial.print(raw.length());
-  Serial.print("> - ");
-  Serial.println(raw);
-  Serial.print("content<");
-  Serial.print(content.length());
-  Serial.print("> - ");
-  Serial.println(content);
-  
-  content.toCharArray(buffer, BUFFER_SIZE);
-}
+//------------------------------------------------------------------------------
+// Initializes the Ethernet.
+/*void setup_ethernet() {
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("Failed to configure Ethernet using DHCP");
+    // no point in carrying on, so do nothing forevermore:
+    for(;;);
+  }
+  Serial.print("Ethernet address: ");
+  for (byte thisByte = 0; thisByte < 4; thisByte++) {
+    Serial.print(Ethernet.localIP()[thisByte], DEC);
+    Serial.print("."); 
+  }
+  Serial.println();
+}*/
 
 //------------------------------------------------------------------------------
 // Initializes the RFM12B radio.
