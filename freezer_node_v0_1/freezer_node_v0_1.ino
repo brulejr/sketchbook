@@ -32,6 +32,8 @@
 #define APIN_LDR        1  // data connection for photocell
 #define DPIN_ONEWIRE    3  // data connection for the Dallas OneWire bus
 #define DPIN_HALL       7  // data connection for hall effect
+#define DPIN_RF_LED     9  // led indicating rf traffic
+#define LED_DELAY       500
 
 #define MEASURE_PERIOD  100 // how often to measure, in tenths of seconds
 #define RETRY_PERIOD    10  // how soon to retry if ACK didn't come in
@@ -39,6 +41,17 @@
 #define ACK_TIME        10  // number of milliseconds to wait for an ack
 #define REPORT_EVERY    2   // report every N measurement cycles
 #define SMOOTH          3   // smoothing factor used for running averages
+
+#define NODEID          2       // node ID used for this unit
+#define NETWORKID       99
+#define GATEWAYID       1
+#define FREQUENCY       RF12_915MHZ
+
+#define BUFFER_SIZE     128
+
+// set the sync mode to 2 if the fuses are still the Arduino default
+// mode 3 (full powerdown) can only be used with 258 CK startup fuses
+#define RADIO_SYNC_MODE 2
 
 enum { MEASURE, REPORT, TASK_END };
 
@@ -49,10 +62,10 @@ Scheduler scheduler(TASK_END);
 static byte reportCount;    // count up until next report, i.e. packet send
 
 struct SensorData {
-  byte light;           // light sensor: 0..255
-  byte openDoor :1;     // door sensor: 0..1
-  int tempInside :10;   // temperature: -500..+500 (tenths)
-  int tempOutside :10;  // temperature: -500..+500 (tenths)
+  byte light;            // light sensor: 0..255
+  byte door :1;      // door sensor: 0..1
+  int tempIn :10;    // temperature: -500..+500 (tenths)
+  int tempOut :10;   // temperature: -500..+500 (tenths)
 };
 
 // dallas onewire configuration
@@ -63,6 +76,8 @@ DeviceAddress thermometerOutside  = { 0x10, 0x74, 0x6C, 0x53, 0x02, 0x08, 0x00, 
 
 // container for sensor data
 SensorData sensorData;
+
+char buffer[BUFFER_SIZE];
 
 // has to be defined because we're using the watchdog for low-power waiting
 ISR(WDT_vect) { Sleepy::watchdogEvent(); }
@@ -81,6 +96,11 @@ void setup() {
   #endif
   
   setup_sensors();
+  
+  pinMode(DPIN_RF_LED, OUTPUT);
+
+  rf12_initialize(NODEID, FREQUENCY, NETWORKID);
+  rf12_sleep(RF12_SLEEP);
   
   reportCount = REPORT_EVERY;     // report right away for easy debugging
   scheduler.timer(MEASURE, 0);    // start the measurement loop going
@@ -116,6 +136,22 @@ void loop() {
 }
 
 //------------------------------------------------------------------------------
+void EmBencode::PushChar (char ch) {
+  int len = strlen(buffer);
+  buffer[len + 1] = buffer[len];
+  buffer[len] = ch;
+}
+
+//------------------------------------------------------------------------------
+// blinks the give led pin
+//
+static void blink_led(byte pin, int delay_ms) {
+  digitalWrite(pin, HIGH);
+  delay(delay_ms);
+  digitalWrite(pin, LOW);
+}
+
+//------------------------------------------------------------------------------
 // flushes the serial port
 //
 static void serialFlush () {
@@ -144,15 +180,37 @@ static void doMeasure() {
   sensorData.light = smoothedAverage(sensorData.light, light, firstTime);
 
   // read door status
-  sensorData.openDoor = digitalRead(DPIN_HALL);
+  sensorData.door = digitalRead(DPIN_HALL);
   
   // read one-wire sensors
   oneWireSensors.requestTemperatures();
-  int tempInside = int(oneWireSensors.getTempC(thermometerInside) * 10);
-  sensorData.tempInside = smoothedAverage(sensorData.tempInside, tempInside, firstTime);
-  int tempOutside = int(oneWireSensors.getTempC(thermometerOutside) * 10);
-  sensorData.tempOutside = smoothedAverage(sensorData.tempOutside, tempOutside, firstTime);
+  int tempIn = int(oneWireSensors.getTempC(thermometerInside) * 10);
+  sensorData.tempIn = smoothedAverage(sensorData.tempIn, tempIn, firstTime);
+  int tempOut = int(oneWireSensors.getTempC(thermometerOutside) * 10);
+  sensorData.tempOut = smoothedAverage(sensorData.tempOut, tempOut, firstTime);
   
+}
+
+//------------------------------------------------------------------------------
+// generate Bencode response
+//
+static void createReport() {
+  
+    buffer[0] = '\0';
+    
+    EmBencode encoder;
+    encoder.push(NODEID);
+    encoder.startDict();
+        encoder.push("light");
+        encoder.push(sensorData.light);
+        encoder.push("door");
+        encoder.push(sensorData.door);
+        encoder.push("tempIn");
+        encoder.push(sensorData.tempIn);
+        encoder.push("tempOut");
+        encoder.push(sensorData.tempOut);
+    encoder.endDict();
+
 }
 
 //------------------------------------------------------------------------------
@@ -160,15 +218,28 @@ static void doMeasure() {
 // serial port)
 //
 static void doReport() {
+  
+  createReport();
+  rf12_sleep(RF12_WAKEUP);
+  rf12_sendNow(0, buffer, strlen(buffer));
+  rf12_sendWait(RADIO_SYNC_MODE);
+  rf12_sleep(RF12_SLEEP);
+  blink_led(DPIN_RF_LED, LED_DELAY);
+
   #if SERIAL
     Serial.print("FREEZER ");
     Serial.print((int) sensorData.light);
     Serial.print(' ');
-    Serial.print((int) sensorData.openDoor);
+    Serial.print((int) sensorData.door);
     Serial.print(' ');
-    Serial.print((int) sensorData.tempInside);
+    Serial.print((int) sensorData.tempIn);
     Serial.print(' ');
-    Serial.print((int) sensorData.tempOutside);
+    Serial.print((int) sensorData.tempOut);
+    #if DEBUG
+      Serial.print(" - MSG [");
+      Serial.print(buffer);
+      Serial.print("]");
+    #endif
     Serial.println();
     serialFlush();
   #endif
