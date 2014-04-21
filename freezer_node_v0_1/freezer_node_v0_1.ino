@@ -16,7 +16,6 @@
 ----------------------------------------------------------------------------- */
 
 #include <JeeLib.h>
-#include <RF12sio.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <TimerOne.h>
@@ -44,7 +43,6 @@
 
 #define NODEID          2       // node ID used for this unit
 #define NETWORKID       99
-#define GATEWAYID       1
 #define FREQUENCY       RF12_915MHZ
 
 #define BUFFER_SIZE     128
@@ -211,7 +209,7 @@ static void createReport() {
         encoder.push(sensorData.tempOut);
     encoder.endDict();
 
-}
+}  
 
 //------------------------------------------------------------------------------
 // generate periodic report (i.e. send out a packet and optionally report on 
