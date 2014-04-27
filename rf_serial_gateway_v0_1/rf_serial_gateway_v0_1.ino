@@ -34,7 +34,7 @@ void setup() {
     #if DEBUG
         Serial.print("[rfSerialGateway - ");
         Serial.print(VERSION);
-        Serial.print("]");
+        Serial.println("]");
     #endif    
     rf12_initialize(NODEID, FREQUENCY, NETWORKID);
 }
@@ -73,6 +73,7 @@ static void consumeInData () {
         encoder.push(inData.data[i]);
     }
     encoder.endList();
+    Serial.println();
 }
 
 //------------------------------------------------------------------------------
