@@ -90,5 +90,5 @@ static byte produceOutData () {
 
 //------------------------------------------------------------------------------
 void EmBencode::PushChar (char ch) {
-  Serial.print(ch);
+  Serial.write(ch);
 }
