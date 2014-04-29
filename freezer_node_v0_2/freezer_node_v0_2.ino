@@ -63,10 +63,10 @@ struct SensorData {
     union {
         byte raw[RAW_LENGTH];
         struct {
-            byte light;       // light sensor: 0..255
-            byte door :1;     // door sensor: 0..1
-            int tempIn :10;   // temperature: -500..+500 (tenths)
-            int tempOut :10;  // temperature: -500..+500 (tenths)
+            byte light;   // light sensor: 0..255
+            byte door;    // door sensor: 0..1
+            int tempIn;   // temperature: -500..+500 (tenths)
+            int tempOut;  // temperature: -500..+500 (tenths)
         };
     };
 };

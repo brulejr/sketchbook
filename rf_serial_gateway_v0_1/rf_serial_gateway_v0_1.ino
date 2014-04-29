@@ -66,12 +66,14 @@ void loop() {
 //
 static void consumeInData () {
     EmBencode encoder;
+    encoder.startList();
     encoder.push(inData.type);
     encoder.push(inData.format);
     encoder.startList();
     for (int i = 0; i < RAW_LENGTH; i++) { 
         encoder.push(inData.data[i]);
     }
+    encoder.endList();
     encoder.endList();
     Serial.println();
 }
