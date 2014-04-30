@@ -19,6 +19,8 @@
 typedef struct {
     byte type;
     byte format;
+    byte network;
+    byte node;
     byte data[RAW_LENGTH];
 } Payload;
 
@@ -69,6 +71,8 @@ static void consumeInData () {
     encoder.startList();
     encoder.push(inData.type);
     encoder.push(inData.format);
+    encoder.push(inData.network);
+    encoder.push(inData.node);
     encoder.startList();
     for (int i = 0; i < RAW_LENGTH; i++) { 
         encoder.push(inData.data[i]);
