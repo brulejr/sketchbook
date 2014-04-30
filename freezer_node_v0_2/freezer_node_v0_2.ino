@@ -44,8 +44,8 @@
 #define FREQUENCY       RF12_915MHZ
 
 #define RAW_LENGTH      16
-#define TYPE_FREEZER    0x01
-#define FORMAT_DATA     0x01
+#define FREEZER_ZONE    0x01
+#define DATA_TYPE       0x02
 
 // set the sync mode to 2 if the fuses are still the Arduino default
 // mode 3 (full powerdown) can only be used with 258 CK startup fuses
@@ -58,8 +58,8 @@ Scheduler scheduler(TASK_END);
 static byte reportCount;    // count up until next report, i.e. packet send
 
 struct SensorData {
+    byte zone;
     byte type;
-    byte format;
     byte network;
     byte node;
     union {
@@ -108,8 +108,8 @@ void setup() {
     reportCount = REPORT_EVERY;     // report right away for easy debugging
     scheduler.timer(MEASURE, 0);    // start the measurement loop going
   
-    sensorData.type = TYPE_FREEZER;
-    sensorData.format = TYPE_FREEZER;
+    sensorData.zone = FREEZER_ZONE;
+    sensorData.type = DATA_TYPE;
     sensorData.network = NETWORKID;
     sensorData.node = NODEID;
     for (int i = 0; i< RAW_LENGTH; i++) {

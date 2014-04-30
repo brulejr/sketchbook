@@ -17,8 +17,8 @@
 #define RAW_LENGTH 16
 
 typedef struct {
+    byte zone;
     byte type;
-    byte format;
     byte network;
     byte node;
     byte data[RAW_LENGTH];
@@ -69,8 +69,8 @@ void loop() {
 static void consumeInData () {
     EmBencode encoder;
     encoder.startList();
+    encoder.push(inData.zone);
     encoder.push(inData.type);
-    encoder.push(inData.format);
     encoder.push(inData.network);
     encoder.push(inData.node);
     encoder.startList();
