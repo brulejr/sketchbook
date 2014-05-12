@@ -26,11 +26,13 @@
 #define DEBUG      1     // set to 1 to display each loop() run
 #define BAUD_RATE  57600
 
+#define APIN_BATTERY    0  // data connection for battery
 #define APIN_LDR        1  // data connection for photocell
 #define DPIN_ONEWIRE    3  // data connection for the Dallas OneWire bus
 #define DPIN_HALL       7  // data connection for hall effect
 #define DPIN_RF_LED     9  // led indicating rf traffic
 #define LED_DELAY       500
+#define VDD_RATIO       1.622
 
 #define MEASURE_PERIOD  100 // how often to measure, in tenths of seconds
 #define RETRY_PERIOD    10  // how soon to retry if ACK didn't come in
@@ -69,6 +71,7 @@ struct SensorData {
             byte door;    // door sensor: 0..1
             int tempIn;   // temperature: -500..+500 (tenths)
             int tempOut;  // temperature: -500..+500 (tenths)
+            int battery;  // battery voltage
         };
     };
 };
@@ -191,6 +194,11 @@ static void doMeasure() {
     sensorData.tempIn = smoothedAverage(sensorData.tempIn, tempIn, firstTime);
     int tempOut = int(oneWireSensors.getTempC(thermometerOutside) * 10);
     sensorData.tempOut = smoothedAverage(sensorData.tempOut, tempOut, firstTime);
+    
+    // read battery voltage
+    int val = analogRead(APIN_BATTERY);
+    int battery = int(val * 0.00488 * VDD_RATIO * 10);
+    sensorData.battery = smoothedAverage(sensorData.battery, battery, firstTime);
   
 }
 
@@ -215,6 +223,8 @@ static void doReport() {
         Serial.print((int) sensorData.tempIn);
         Serial.print(' ');
         Serial.print((int) sensorData.tempOut);
+        Serial.print(' ');
+        Serial.print((int) sensorData.battery);
         Serial.println();
         serialFlush();
     #endif
