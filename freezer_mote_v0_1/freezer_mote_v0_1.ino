@@ -45,7 +45,8 @@
 #define APIN_LDR        1  // data connection for photocell
 #define DPIN_ONEWIRE    3  // data connection for the Dallas OneWire bus
 #define DPIN_HALL       7  // data connection for hall effect
-#define DPIN_RF_LED     9  // led indicating rf traffic
+#define DPIN_RF_LED     2  // rf activiyy indicator LED
+#define DPIN_MOTE_LED   9  // moteinos have LEDs on D9
 #define VOLTAGE         3.3
 
 #define MEASURE_PERIOD  100
@@ -118,6 +119,8 @@ void setup() {
 // main processing loop
 //
 void loop() {
+  
+    heartbeat(DPIN_MOTE_LED);
     
     switch (scheduler.pollWaiting()) {
 
@@ -145,6 +148,30 @@ void loop() {
         }
     }
     
+}
+
+//------------------------------------------------------------------------------
+// simulates a heartbeat to show activity
+//
+static void heartbeat(int pin) {
+    int rate = 25;
+    int pmw = 255;
+    for(int i = 0; i < pmw; i++) {
+        analogWrite(pin,i);
+        delay(((60000/rate)*.1)/pmw);
+    }
+    for (int i = pmw; i > 0; i--){
+        analogWrite(pin,i);
+        delay(((60000/rate)*.2)/pmw);
+    }
+    for(int i = 0; i < pmw; i++) {
+        analogWrite(pin,i);
+        delay(((60000/rate)*.1)/pmw);
+    }
+    for (int i = pmw; i > 0; i--){
+        analogWrite(pin,i);
+        delay(((60000/rate)*.6)/pmw);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -253,7 +280,20 @@ static void setup_sensors() {
     #if DEBUG
         Serial.println("setup sensors");
     #endif
+    
     pinMode(APIN_LDR, INPUT);
     pinMode(DPIN_HALL, INPUT);
-    oneWireSensors.begin();  
+    
+    // configure one-wire bus
+    oneWireSensors.begin();
+    #if DEBUG
+        Serial.print("Locating devices...");
+        Serial.print("Found ");
+        Serial.print(oneWireSensors.getDeviceCount(), DEC);
+        Serial.println(" devices.");
+        
+        Serial.print("Parasite power is: "); 
+        if (oneWireSensors.isParasitePowerMode()) Serial.println("ON");
+        else Serial.println("OFF");
+    #endif    
 }
