@@ -72,7 +72,7 @@ void Freezer::doReport() {
     for (int i = 0; i< RAW_LENGTH; i++) {
         _message.raw[i] = 0x00;
     }
-    _message.sensor = _reading;
+    memcpy(&_message.sensor, &_reading, sizeof(_reading));
     _message.sensor.msgtype = MSG_READING;
     _message.sensor.network = NETWORKID;
     _message.sensor.node = NODEID;
