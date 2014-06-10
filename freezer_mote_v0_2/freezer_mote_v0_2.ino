@@ -14,6 +14,8 @@
 ----------------------------------------------------------------------------- */
 #include <ChibiOS_AVR.h>
 #include <Heartbeat.h>
+#include <RFM69.h>
+#include <SPI.h>
 #include "Freezer.h"
 
 #define VERSION    "v0.2"
@@ -26,6 +28,10 @@
 
 #define MEASURE_PERIOD   1000
 #define REPORT_INTERVAL  10
+
+Freezer freezer(REPORT_INTERVAL);
+RFM69 radio;
+
 
 //----------------------------------------------------------------------------- 
 // heartbeat thread
@@ -44,7 +50,6 @@ static msg_t HeartbeatThread(void *arg) {
 //
 static WORKING_AREA(waThread2, 50);
 static msg_t FreezerThread(void *arg) {
-  Freezer freezer(REPORT_INTERVAL);
   while (1) {
     freezer.measure();
     chThdSleepMilliseconds(MEASURE_PERIOD);
@@ -61,6 +66,8 @@ void setup () {
         Serial.print(VERSION);
         Serial.println("]");
     #endif
+    
+    setup_radio();
     
     chBegin(mainThread);
 }
@@ -82,5 +89,39 @@ void mainThread () {
 
 //-----------------------------------------------------------------------------
 void loop () {
-  delay(1000);
+  
+  // send report to gateway if ready
+  noInterrupts();
+  if (freezer.isReportReady()) {
+    MessageData* report = freezer.report();
+    #if DEBUG
+        Serial.print("Broadcasting report to gateway...");
+    #endif
+    if (radio.sendWithRetry(GATEWAYID, report->raw, RAW_LENGTH)) {
+        #if DEBUG
+            Serial.println("ACK!");
+        #endif
+    } else {
+        #if DEBUG
+            Serial.println("No ACK...");
+        #endif
+    }
+  }
+  interrupts();
+  
+}
+
+//------------------------------------------------------------------------------
+// Initializes the RF radio.
+//
+static void setup_radio() {
+    #if DEBUG
+        Serial.print("setup radio...");
+    #endif
+    radio.initialize(FREQUENCY,NODEID,NETWORKID);
+    radio.setHighPower();
+    delay(1000);
+    #if DEBUG
+        Serial.println("ok!");
+    #endif
 }

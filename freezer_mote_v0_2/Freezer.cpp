@@ -9,8 +9,10 @@
 Freezer::Freezer(byte reportCycle)
 {
     _reportCycle = reportCycle;
+
     _smooth = SMOOTHING;
     _firstTime = true;
+    _reportReady = false;
     
     // configure pins
     pinMode(APIN_LDR, INPUT);
@@ -65,6 +67,25 @@ void Freezer::doReport() {
         Serial.print(' ');
         Serial.print((int) _reading.battery);
         Serial.println();
-    #endif    
+    #endif
+    
+    for (int i = 0; i< RAW_LENGTH; i++) {
+        _message.raw[i] = 0x00;
+    }
+    _message.sensor = _reading;
+    _message.sensor.msgtype = MSG_READING;
+    _message.sensor.network = NETWORKID;
+    _message.sensor.node = NODEID;
+    _reportReady = true;
 }
 
+//------------------------------------------------------------------------------
+boolean Freezer::isReportReady() {
+    return _reportReady;
+}
+
+//------------------------------------------------------------------------------
+MessageData* Freezer::report() {
+    _reportReady = false;
+    return &_message;
+}
