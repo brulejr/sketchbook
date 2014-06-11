@@ -69,9 +69,8 @@ void Freezer::doReport() {
         Serial.println();
     #endif
     
-    for (int i = 0; i< RAW_LENGTH; i++) {
-        _message.raw[i] = 0x00;
-    }
+    memset(_message.raw, 0, sizeof(_message.raw));
+    
     memcpy(&_message.sensor, &_reading, sizeof(_reading));
     _message.sensor.msgtype = MSG_READING;
     _message.sensor.network = NETWORKID;
