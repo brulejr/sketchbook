@@ -68,13 +68,8 @@ void Freezer::doReport() {
         Serial.print((int) _reading.battery);
         Serial.println();
     #endif
-    
-    memset(_message.raw, 0, sizeof(_message.raw));
-    
-    memcpy(&_message.sensor, &_reading, sizeof(_reading));
-    _message.sensor.msgtype = MSG_READING;
-    _message.sensor.network = NETWORKID;
-    _message.sensor.node = NODEID;
+
+    memcpy(&_report, &_reading, sizeof(_reading));
     _reportReady = true;
 }
 
@@ -84,7 +79,7 @@ boolean Freezer::isReportReady() {
 }
 
 //------------------------------------------------------------------------------
-MessageData* Freezer::report() {
+SensorData* Freezer::report() {
     _reportReady = false;
-    return &_message;
+    return &_report;
 }

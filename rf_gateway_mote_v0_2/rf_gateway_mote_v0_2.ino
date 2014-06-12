@@ -10,12 +10,12 @@
    Created 10-JUN-2014 by Jon Brule
 ----------------------------------------------------------------------------- */
 #include <ChibiOS_AVR.h>
-#include <Heartbeat.h>
 #include <RFM69.h>
 #include <SPI.h>
 #include <EmBencode.h>
 #include <avr/sleep.h>
-#include "message.h"
+#include <Heartbeat.h>
+#include <Event.h>
 
 #define VERSION "v0.2"
 
@@ -34,9 +34,9 @@
 
 RFM69 radio;
 
-MessageData inbound, outbound;
+EventMessage inbound, outbound;
 
-char embuf[MSG_LENGTH * 8];
+char embuf[EVENT_LENGTH * 8];
 EmBdecode decoder(embuf, sizeof embuf);
 
 
@@ -57,8 +57,8 @@ static msg_t HeartbeatThread(void *arg) {
 //
 void setup() {
   
-      #if SERIAL || DEBUG
-        Serial.begin(BAUD_RATE);
+    Serial.begin(BAUD_RATE);
+    #if DEBUG
         Serial.print("\n[GatewayMote - ");
         Serial.print(VERSION);
         Serial.println("]");
@@ -89,7 +89,7 @@ void loop() {
     // bridge rf to serial messages
     noInterrupts();
     if (radio.receiveDone()) {
-        if (radio.DATALEN != sizeof(MessageData)) {
+        if (radio.DATALEN != sizeof(EventMessage)) {
             Serial.print("Invalid payload received, not matching Payload struct!");
         } else {
             memcpy(&inbound, (byte*) radio.DATA, sizeof inbound);
@@ -104,7 +104,7 @@ void loop() {
     // bridge serial messages to rf
     noInterrupts();
     if (consumeSerial()) {
-        radio.sendWithRetry(outbound.msg.node, outbound.raw, MSG_LENGTH);
+        radio.sendWithRetry(outbound.event.destination, outbound.raw, EVENT_LENGTH);
     }        
     interrupts();
     
@@ -116,12 +116,13 @@ void loop() {
 static void consumeRf() {
     EmBencode encoder;
     encoder.startList();
-    encoder.push(inbound.msg.msgtype);
-    encoder.push(inbound.msg.network);
-    encoder.push(inbound.msg.node);
+    encoder.push(inbound.event.type);
+    encoder.push(inbound.event.network);
+    encoder.push(inbound.event.source);
+    encoder.push(inbound.event.destination);
     encoder.startList();
-    for (int i = 0; i < MSG_BODY_LENGTH; i++) { 
-        encoder.push(inbound.msg.data[i]);
+    for (int i = 0; i < EVENT_DATA_LENGTH; i++) { 
+        encoder.push(inbound.event.data[i]);
     }
     encoder.endList();
     encoder.endList();
@@ -139,7 +140,7 @@ static boolean consumeSerial() {
       uint8_t bytes = decoder.process(ch);
       if (bytes > 0) {
           uint8_t i = 0;
-          while (i < MSG_LENGTH) {
+          while (i < EVENT_LENGTH) {
               uint8_t token = decoder.nextToken();
               if (token == EmBdecode::T_END) {
                   break;
@@ -153,8 +154,8 @@ static boolean consumeSerial() {
               }
           }
           decoder.reset();
-          if (i < MSG_LENGTH) {
-              for (int j = i; j < MSG_LENGTH; j++) {
+          if (i < EVENT_LENGTH) {
+              for (int j = i; j < EVENT_LENGTH; j++) {
                   outbound.raw[j] = 0x00;
               }
           }

@@ -16,6 +16,7 @@
 #include <Heartbeat.h>
 #include <RFM69.h>
 #include <SPI.h>
+#include <Event.h>
 #include "Freezer.h"
 
 #define VERSION    "v0.2"
@@ -29,8 +30,16 @@
 #define MEASURE_PERIOD   1000
 #define REPORT_INTERVAL  10
 
+#define NODEID        2   // unique for each node on same network
+#define GATEWAYID     1
+#define NETWORKID     99  // same for all nodes that talk to each other
+#define FREQUENCY     RF69_915MHZ
+
+
 Freezer freezer(REPORT_INTERVAL);
 RFM69 radio;
+
+EventMessage inbound, outbound;
 
 
 //----------------------------------------------------------------------------- 
@@ -93,17 +102,25 @@ void loop () {
   // send report to gateway if ready
   noInterrupts();
   if (freezer.isReportReady()) {
-    MessageData* report = freezer.report();
+    
+    memset(&outbound, 0, sizeof(outbound));
+    outbound.event.type = EVENT_READING;
+    outbound.event.network = NETWORKID;
+    outbound.event.source = NODEID;
+    
+    SensorData* report = freezer.report();
+    memcpy(&outbound.event.data, report, sizeof(*report));
+    
     #if DEBUG
         Serial.print("Broadcasting report to gateway...");
     #endif
-    if (radio.sendWithRetry(GATEWAYID, report->raw, RAW_LENGTH)) {
+    if (radio.sendWithRetry(GATEWAYID, outbound.raw, EVENT_LENGTH)) {
         #if DEBUG
-            Serial.println("ACK!");
+            Serial.println("ACK");
         #endif
     } else {
         #if DEBUG
-            Serial.println("No ACK...");
+            Serial.println("No ACK!");
         #endif
     }
   }
