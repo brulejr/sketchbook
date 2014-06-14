@@ -13,6 +13,7 @@
 
 #define APIN_BATTERY  0  // data connection for battery
 #define APIN_LDR      1  // data connection for photocell
+#define APIN_TEMP     2  // data connection for temperature
 #define DPIN_HALL     7  // data connection for hall effect
 #define VOLTAGE       3.3
 
@@ -21,7 +22,8 @@
 struct SensorData {
     byte light;   // light sensor: 0..255
     byte door;    // door sensor: 0..1
-    int battery;  // battery voltage
+    byte battery;  // battery voltage
+    byte tempInC;  // temperature sensor: C * 10
 };
 
 class Freezer

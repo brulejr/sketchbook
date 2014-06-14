@@ -50,6 +50,12 @@ void Freezer::doMeasure() {
     // read door status
     _reading.door = digitalRead(DPIN_HALL);
 
+    // read temperature
+    int tempRaw = analogRead(APIN_TEMP);
+    float tempVolts = (((float)tempRaw / 1024) * 3.3);
+    int tempInC = int((tempVolts - 0.5) / 0.01);
+    _reading.tempInC = smoothedAverage(_reading.tempInC, tempInC);
+
     // read battery voltage
     int val = analogRead(APIN_BATTERY);
     int battery = int(((val/255) * VOLTAGE) * 10);
@@ -66,6 +72,8 @@ void Freezer::doReport() {
         Serial.print((int) _reading.door);
         Serial.print(' ');
         Serial.print((int) _reading.battery);
+        Serial.print(' ');
+        Serial.print((int) _reading.tempInC);
         Serial.println();
     #endif
 
