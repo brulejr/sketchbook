@@ -11,8 +11,6 @@
 
 #define SERIAL        1
 
-#define APIN_BATTERY  0  // data connection for battery
-#define DPIN_LIGHT    3  // data connection for hall effect
 #define VOLTAGE       3.3
 
 #define SMOOTHING     3
@@ -25,7 +23,7 @@ struct SensorData {
 class Light
 {
   public:
-    Light(byte reportCycle);
+    Light(byte reportCycle, byte lightPin, byte battPin);
     boolean isReportReady();
     void measure();
     void off();
@@ -37,6 +35,7 @@ class Light
     void doReport();
     int smoothedAverage(int prev, int next);
   private:
+    byte _battPin;
     byte _lightPin;
     byte _lightState;
     byte _reportCycle;

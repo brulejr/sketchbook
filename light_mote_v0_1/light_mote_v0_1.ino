@@ -6,8 +6,8 @@
    Circuit:
    * Moteino R4 w/ RFM69HW RF module
    * Battery voltage monitor attached to analog pin 0
-   * LDR sensor attached to analog pin 1
-   * Hall Effect sensor attached to digital pin 7
+   * Momentary button attached to digital pin 2
+   * LED Light attached to digital pin 3
    * RF Status LED attached to digital pin 9
  
    Created 08-JUN-2014 by Jon Brule
@@ -25,7 +25,9 @@
 #define DEBUG       1   // set to 1 to display each loop() run
 #define BAUD_RATE   57600
 
+#define APIN_BATTERY     0
 #define DPIN_BUTTON      2
+#define DPIN_LIGHT       3
 #define DPIN_MOTE_LED    9  // moteinos have LEDs on D9
 
 #define MEASURE_PERIOD   1000
@@ -41,7 +43,7 @@ int lastButtonState = LOW;   // the previous reading from the input pin
 long lastDebounceTime = 0;  // the last time the output pin was toggled
 long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
-Light light(REPORT_INTERVAL);
+Light light(REPORT_INTERVAL, DPIN_LIGHT, APIN_BATTERY);
 RFM69 radio;
 
 EventMessage inbound, outbound;
@@ -111,7 +113,38 @@ void loop () {
   
   // send report to gateway if ready
   if (light.isReportReady()) {
+    sendReadingReport();
+  }
     
+  handleLightButton();
+
+  interrupts();
+  
+}
+
+//------------------------------------------------------------------------------
+// Process physical button push that toggles the light state
+//
+static void handleLightButton() {
+  int reading = digitalRead(DPIN_BUTTON);
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
+  } 
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+      if (buttonState == HIGH) {
+        light.toggle();
+      }
+    }
+  }
+  lastButtonState = reading;
+}
+
+//------------------------------------------------------------------------------
+// Dispatches the mote reading report over RF wireless
+//
+static void sendReadingReport() {
     memset(&outbound, 0, sizeof(outbound));
     outbound.event.type = EVENT_READING;
     outbound.event.network = NETWORKID;
@@ -131,25 +164,7 @@ void loop () {
         #if DEBUG
             Serial.println("No ACK!");
         #endif
-    }
-  }
-    
-  int reading = digitalRead(DPIN_BUTTON);
-  if (reading != lastButtonState) {
-    lastDebounceTime = millis();
-  } 
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-    if (reading != buttonState) {
-      buttonState = reading;
-      if (buttonState == HIGH) {
-        light.toggle();
-      }
-    }
-  }
-  lastButtonState = reading;
-
-  interrupts();
-  
+    }  
 }
 
 //------------------------------------------------------------------------------
