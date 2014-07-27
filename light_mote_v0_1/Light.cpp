@@ -14,7 +14,8 @@ Light::Light(byte reportCycle)
     _firstTime = true;
     _reportReady = false;
     
-    // configure pins
+    // configure light
+    _lightState = LOW;
     pinMode(DPIN_LIGHT, OUTPUT);
 }
 
@@ -30,10 +31,34 @@ void Light::measure() {
 }
 
 //------------------------------------------------------------------------------
+// turn the light off
+//
+void Light::off() {
+   _lightState = LOW;
+   digitalWrite(DPIN_LIGHT, _lightState); 
+}
+
+//------------------------------------------------------------------------------
+// turn the light on
+//
+void Light::on() {
+   _lightState = HIGH;
+   digitalWrite(DPIN_LIGHT, _lightState); 
+}
+
+//------------------------------------------------------------------------------
 // perform simple smoothing as a running average
 //
 int Light::smoothedAverage(int prev, int next) {
     return (_firstTime) ? next : ((_smooth - 1) * prev + next + _smooth / 2) / _smooth;
+}
+
+//------------------------------------------------------------------------------
+// toggle the light state
+//
+void Light::toggle() {
+   _lightState = (_lightState == LOW) ? HIGH : LOW;
+   digitalWrite(DPIN_LIGHT, _lightState); 
 }
 
 //------------------------------------------------------------------------------
@@ -55,7 +80,7 @@ void Light::doMeasure() {
 //------------------------------------------------------------------------------
 void Light::doReport() {
     #if SERIAL
-        Serial.print("FREEZER ");
+        Serial.print("LIGHT ");
         Serial.print((int) _reading.light);
         Serial.print(' ');
         Serial.print((int) _reading.battery);

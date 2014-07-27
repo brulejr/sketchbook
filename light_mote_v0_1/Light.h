@@ -26,14 +26,19 @@ class Light
 {
   public:
     Light(byte reportCycle);
-    void measure();
     boolean isReportReady();
+    void measure();
+    void off();
+    void on();
     SensorData* report();
+    void toggle();
   protected:
     void doMeasure();
     void doReport();
     int smoothedAverage(int prev, int next);
   private:
+    byte _lightPin;
+    byte _lightState;
     byte _reportCycle;
     byte _smooth;
     byte _reportCnt;

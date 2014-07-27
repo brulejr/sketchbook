@@ -25,6 +25,7 @@
 #define DEBUG       1   // set to 1 to display each loop() run
 #define BAUD_RATE   57600
 
+#define DPIN_BUTTON      2
 #define DPIN_MOTE_LED    9  // moteinos have LEDs on D9
 
 #define MEASURE_PERIOD   1000
@@ -35,6 +36,10 @@
 #define NETWORKID     99  // same for all nodes that talk to each other
 #define FREQUENCY     RF69_915MHZ
 
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+long lastDebounceTime = 0;  // the last time the output pin was toggled
+long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
 Light light(REPORT_INTERVAL);
 RFM69 radio;
@@ -48,7 +53,7 @@ EventMessage inbound, outbound;
 static WORKING_AREA(waThread1, 50);
 static msg_t HeartbeatThread(void *arg) {
   Heartbeat heartbeat(DPIN_MOTE_LED);
-  while (1) {
+  while (1) {   
     heartbeat.pulse();
   }
   return 0;
@@ -66,6 +71,7 @@ static msg_t LightThread(void *arg) {
   return 0;
 }
 
+
 //-----------------------------------------------------------------------------
 void setup () {
   
@@ -76,7 +82,7 @@ void setup () {
         Serial.println("]");
     #endif
     
-    //digitalWrite(DPIN_LIGHT, 1);
+    pinMode(DPIN_BUTTON, INPUT);
     
     setup_radio();
     
@@ -101,8 +107,9 @@ void mainThread () {
 //-----------------------------------------------------------------------------
 void loop () {
   
-  // send report to gateway if ready
   noInterrupts();
+  
+  // send report to gateway if ready
   if (light.isReportReady()) {
     
     memset(&outbound, 0, sizeof(outbound));
@@ -126,6 +133,21 @@ void loop () {
         #endif
     }
   }
+    
+  int reading = digitalRead(DPIN_BUTTON);
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
+  } 
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+      if (buttonState == HIGH) {
+        light.toggle();
+      }
+    }
+  }
+  lastButtonState = reading;
+
   interrupts();
   
 }
