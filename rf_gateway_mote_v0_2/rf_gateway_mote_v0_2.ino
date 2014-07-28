@@ -104,7 +104,7 @@ void loop() {
     // bridge serial messages to rf
     noInterrupts();
     if (consumeSerial()) {
-        radio.sendWithRetry(outbound.event.destination, outbound.raw, EVENT_LENGTH);
+        radio.send(outbound.event.destination, outbound.raw, EVENT_LENGTH);
     }        
     interrupts();
     

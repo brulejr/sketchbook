@@ -109,17 +109,50 @@ void mainThread () {
 //-----------------------------------------------------------------------------
 void loop () {
   
-  noInterrupts();
-  
   // send report to gateway if ready
+  noInterrupts();
   if (light.isReportReady()) {
     sendReadingReport();
   }
-    
-  handleLightButton();
+  interrupts();
 
+  // process light control buttons    
+  noInterrupts();
+  handleLightButton();
   interrupts();
   
+  // bridge rf to serial messages
+  noInterrupts();
+  if (radio.receiveDone()) {
+      if (radio.DATALEN != sizeof(EventMessage)) {
+          Serial.print("Invalid payload received, not matching Payload struct!");
+      } else {
+          memcpy(&inbound, (byte*) radio.DATA, sizeof inbound);
+          consumeRf();
+      }
+      if (radio.ACK_REQUESTED) {
+          radio.sendACK();
+      }
+  }
+  interrupts();
+  
+}
+
+//------------------------------------------------------------------------------
+// consume inbound RF message
+//
+static void consumeRf() {
+  EventRecord event = inbound.event;
+  if (event.type == EVENT_COMMAND) {
+    Serial.print("command=[");
+    Serial.print(inbound.event.data[0], DEC);
+    Serial.println("]");
+    if (event.data[0] == 21) {
+      light.on();
+    } else if (event.data[0] == 22) {
+      light.off();
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -181,3 +214,4 @@ static void setup_radio() {
         Serial.println("ok!");
     #endif
 }
+
