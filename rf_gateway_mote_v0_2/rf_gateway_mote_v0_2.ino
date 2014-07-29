@@ -135,10 +135,10 @@ static void consumeRf() {
 static boolean consumeSerial() {
   boolean pendingOutbound = false;
   if (Serial.available() > 0) {
-      pendingOutbound = true;
       char ch = Serial.read();
       uint8_t bytes = decoder.process(ch);
       if (bytes > 0) {
+          pendingOutbound = true;
           uint8_t i = 0;
           while (i < EVENT_LENGTH) {
               uint8_t token = decoder.nextToken();
