@@ -38,6 +38,10 @@
 #define NETWORKID     99  // same for all nodes that talk to each other
 #define FREQUENCY     RF69_915MHZ
 
+#define CMD_ON        21
+#define CMD_OFF       22
+#define CMD_TOGGLE    20
+
 int buttonState;             // the current reading from the input pin
 int lastButtonState = LOW;   // the previous reading from the input pin
 long lastDebounceTime = 0;  // the last time the output pin was toggled
@@ -147,10 +151,12 @@ static void consumeRf() {
     Serial.print("command=[");
     Serial.print(inbound.event.data[0], DEC);
     Serial.println("]");
-    if (event.data[0] == 21) {
+    if (event.data[0] == CMD_ON) {
       light.on();
-    } else if (event.data[0] == 22) {
+    } else if (event.data[0] == CMD_OFF) {
       light.off();
+    } else if (event.data[0] == CMD_TOGGLE) {
+      light.toggle();
     }
   }
 }
