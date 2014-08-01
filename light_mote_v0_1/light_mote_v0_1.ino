@@ -31,7 +31,7 @@
 #define DPIN_MOTE_LED    9  // moteinos have LEDs on D9
 
 #define MEASURE_PERIOD   1000
-#define REPORT_INTERVAL  10
+#define REPORT_INTERVAL  5
 
 #define NODEID        3   // unique for each node on same network
 #define GATEWAYID     1
