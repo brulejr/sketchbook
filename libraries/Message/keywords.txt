@@ -1,0 +1,25 @@
+#######################################
+# Syntax Coloring Map For Event
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+MessageRecord	KEYWORD1
+Message		KEYWORD1
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+MSG_LENGTH	LITERAL1
+MSG_ALERT	LITERAL1
+MSG_COMMAND	LITERAL1
+MSG_INFO	LITERAL1
+MSG_READING	LITERAL1
