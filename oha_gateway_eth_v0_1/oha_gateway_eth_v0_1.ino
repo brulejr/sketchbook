@@ -59,7 +59,9 @@ volatile boolean haveDataMQTT = false;
 Message msgI2C, msgEthernet;
 char i2cbuf[I2C_BUFFER_SIZE];
 char ethbuf[ETH_BUFFER_SIZE];
-//EmBdecode decoder(embuf, sizeof embuf);
+
+char embuf [200];
+EmBdecode decoder(embuf, sizeof embuf);
 
 byte *i2cbp, *ethbp;
 
@@ -163,7 +165,33 @@ void loop() {
 // Receives a message from the Etherenet (a.k.a. MQTT)
 //
 void receiveFromMQTT(char* topic, byte* payload, unsigned int length) {
-  // handle MQTTmessage arrived
+  if (length > 0) {
+    uint8_t bytes = decoder.process(payload[0]);
+    for (;;) {
+      uint8_t token = decoder.nextToken();
+      if (token == EmBdecode::T_END)
+        break;
+      switch (token) {
+        case EmBdecode::T_STRING:
+          Serial.print(" string: ");
+          Serial.println(decoder.asString());
+          break;
+        case EmBdecode::T_NUMBER:
+          Serial.print(" number: ");
+          Serial.println(decoder.asNumber());
+          break;
+        case EmBdecode::T_DICT:
+          Serial.println(" > dict");
+          break;
+        case EmBdecode::T_LIST:
+          Serial.println(" > list");
+          break;
+        case EmBdecode::T_POP:
+          Serial.println(" < pop");
+          break;
+      }
+    }  
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -179,6 +207,26 @@ void receiveFromWire(int howMany) {
   for (byte i = 0; i < sizeof msgI2C; i++) {
     *p++ = Wire.read();
   }
+  
+  #if DEBUG
+    Serial.print("I2C<direction=");
+    Serial.print(msgI2C.msg.direction, DEC);
+    Serial.print(",type=");
+    Serial.print(msgI2C.msg.type, DEC);
+    Serial.print(",source=");
+    Serial.print(msgI2C.msg.source, DEC);
+    Serial.print(",destination=");
+    Serial.print(msgI2C.msg.destination, DEC);
+    Serial.print(",rssi=");
+    Serial.print(msgI2C.msg.rssi, DEC);
+    Serial.print(",rssi=data(");
+    for (int i = 0; i < MSG_DATA_LENGTH; i++) {
+      if (i > 0) Serial.print(",");
+      Serial.print(msgI2C.msg.data[i], DEC);
+    }
+    Serial.println(")>");
+  #endif
+
   haveDataI2C = true; 
 }
 
