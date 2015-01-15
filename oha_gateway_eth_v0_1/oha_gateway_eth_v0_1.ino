@@ -1,4 +1,4 @@
-/* -----------------------------------------------------------------------------
+  /* -----------------------------------------------------------------------------
    OpenHAB Ethernet Gateway
   
    Transfers messages between an Ethernet MQTT and the I2C bus. Messages on the
@@ -16,8 +16,8 @@
 #include <PubSubClient.h>
 #include <Wire.h>
 
-#include <EmBencode.h>
 #include <Message.h>
+#include <ArduinoJson.h>
 
 
 #define VERSION "v0.1"
@@ -31,8 +31,8 @@
 #define DPIN_MOTE_LED    9  // heartbeat
 #define DPIN_MQTT_LED   13  // mqtt status
 
-#define I2C_BUFFER_SIZE MSG_DATA_LENGTH * 8
-#define ETH_BUFFER_SIZE MSG_DATA_LENGTH * 8
+#define I2C_BUFFER_SIZE MSG_DATA_LENGTH * 10
+#define ETH_BUFFER_SIZE MSG_DATA_LENGTH * 10
 
 
 // Ethernet configuration
@@ -59,11 +59,6 @@ volatile boolean haveDataMQTT = false;
 Message msgI2C, msgEthernet;
 char i2cbuf[I2C_BUFFER_SIZE];
 char ethbuf[ETH_BUFFER_SIZE];
-
-char embuf [200];
-EmBdecode decoder(embuf, sizeof embuf);
-
-byte *i2cbp, *ethbp;
 
 
 //---------------------------------------------------------------------------// 
@@ -165,33 +160,6 @@ void loop() {
 // Receives a message from the Etherenet (a.k.a. MQTT)
 //
 void receiveFromMQTT(char* topic, byte* payload, unsigned int length) {
-  if (length > 0) {
-    uint8_t bytes = decoder.process(payload[0]);
-    for (;;) {
-      uint8_t token = decoder.nextToken();
-      if (token == EmBdecode::T_END)
-        break;
-      switch (token) {
-        case EmBdecode::T_STRING:
-          Serial.print(" string: ");
-          Serial.println(decoder.asString());
-          break;
-        case EmBdecode::T_NUMBER:
-          Serial.print(" number: ");
-          Serial.println(decoder.asNumber());
-          break;
-        case EmBdecode::T_DICT:
-          Serial.println(" > dict");
-          break;
-        case EmBdecode::T_LIST:
-          Serial.println(" > list");
-          break;
-        case EmBdecode::T_POP:
-          Serial.println(" < pop");
-          break;
-      }
-    }  
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -236,26 +204,24 @@ void receiveFromWire(int howMany) {
 void sendToMQTT() {
   
   memset(i2cbuf, 0, sizeof(i2cbuf));
-  i2cbp = (byte *) &i2cbuf;
     
-  // format message as bencode
-  EmBencode encoder;
-  encoder.startList();
-  encoder.push(msgI2C.msg.direction);
-  encoder.push(msgI2C.msg.type);
-  encoder.push(msgI2C.msg.source);
-  encoder.push(msgI2C.msg.destination);
-  encoder.push(msgI2C.msg.rssi);
-  encoder.startList();
-  for (int i = 0; i < MSG_DATA_LENGTH; i++) { 
-    encoder.push(msgI2C.msg.data[i]);
+  // format message as json
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  root["direction"] = msgI2C.msg.direction;
+  root["type"] = msgI2C.msg.type;
+  root["source"] = msgI2C.msg.source;
+  root["destination"] = msgI2C.msg.destination;
+  root["rssi"] = msgI2C.msg.rssi;
+  JsonArray& data = root.createNestedArray("data");
+  for (int i = 0; i < MSG_DATA_LENGTH; i++) {  
+    data.add(msgI2C.msg.data[i]);
   }
-  encoder.endList();
-  encoder.endList();
+  root.printTo(i2cbuf, sizeof(i2cbuf));
   
   #if DEBUG
     Serial.print("i2c -> mqtt: [");
-    Serial.print(i2cbuf);
+    root.printTo(Serial);
     Serial.println("]");
   #endif
     
@@ -267,10 +233,5 @@ void sendToMQTT() {
 // Publishes an MQTT message to the I2C buss.
 //
 void sendToI2C() {
-}
-
-//------------------------------------------------------------------------------
-void EmBencode::PushChar(char ch) {
-  *i2cbp++ = ch;
 }
 
