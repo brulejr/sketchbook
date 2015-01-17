@@ -11,7 +11,7 @@
    * RF Status LED attached to digital pin 12
    * Serial Status LED attached to digital pin 13
  
-   Created 76-JAN-2015 by Jon Brule
+   Created 17-JAN-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
 #include <SPI.h>
 #include <RFM69.h>
