@@ -138,9 +138,8 @@ boolean receiveFromSerial() {
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(serialBuffer);
     serialMsg.msg.type = root["type"];
-    serialMsg.msg.direction = root["direction"];
-    serialMsg.msg.source = root["source"];
-    serialMsg.msg.destination = root["destination"];
+    serialMsg.msg.source = root["src"];
+    serialMsg.msg.destination = root["dest"];
     serialMsg.msg.rssi = 0x00;
     for (int i = 0; i < MSG_DATA_LENGTH; i++) {
       serialMsg.msg.data[i] = root["data"][i];
@@ -166,7 +165,6 @@ void sendToSerial() {
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   root["type"] = rfMsg.msg.type;
-  root["dir"] = rfMsg.msg.direction;
   root["src"] = rfMsg.msg.source;
   root["dest"] = rfMsg.msg.destination;
   root["rssi"] = rfMsg.msg.rssi;

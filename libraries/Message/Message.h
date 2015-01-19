@@ -1,6 +1,6 @@
 /*
   Message.h - Library for structured messages.
-  Created by Jon R. Brule, January 17, 2015.
+  Created by Jon R. Brule, January 19, 2015.
   Released into the public domain.
 */
 #ifndef Message_h
@@ -9,7 +9,7 @@
 #include "Arduino.h"
 
 #define MSG_LENGTH        20
-#define MSG_DATA_LENGTH   (MSG_LENGTH - 6)
+#define MSG_DATA_LENGTH   (MSG_LENGTH - 5)
 
 #define RF_TO_MQTT     0x10
 #define MQTT_TO_RF     0x20
@@ -21,7 +21,6 @@
 #define MSG_READING    0x52
 
 typedef struct {
-    byte direction;
     byte type;
     byte source;
     byte destination;

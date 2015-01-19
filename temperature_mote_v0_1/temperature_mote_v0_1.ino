@@ -136,7 +136,6 @@ static void consumeRf() {
 static void sendReadingReport() {
     memset(&outbound, 0, sizeof(outbound));
     
-    outbound.msg.direction = RF_TO_MQTT  ;
     outbound.msg.type = MSG_READING;
     outbound.msg.source = NODEID;
     outbound.msg.destination = 0;
