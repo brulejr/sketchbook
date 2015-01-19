@@ -11,7 +11,7 @@
    * RF Status LED attached to digital pin 12
    * Serial Status LED attached to digital pin 13
  
-   Created 17-JAN-2015 by Jon Brule
+   Created 19-JAN-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
 #include <SPI.h>
 #include <RFM69.h>
@@ -166,9 +166,9 @@ void sendToSerial() {
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   root["type"] = rfMsg.msg.type;
-  root["direction"] = rfMsg.msg.direction;
-  root["source"] = rfMsg.msg.source;
-  root["destination"] = rfMsg.msg.destination;
+  root["dir"] = rfMsg.msg.direction;
+  root["src"] = rfMsg.msg.source;
+  root["dest"] = rfMsg.msg.destination;
   root["rssi"] = rfMsg.msg.rssi;
   JsonArray& data = root.createNestedArray("data");
   for (int i = 0; i < MSG_DATA_LENGTH; i++) {  
