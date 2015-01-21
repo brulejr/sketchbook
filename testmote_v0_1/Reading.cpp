@@ -6,15 +6,28 @@
 #include "Arduino.h"
 #include "Reading.h"
 
+// constructs a averaged reading
 Reading::Reading(byte period, byte pin, byte smooth, MeasureFunc mf, ReportFunc rf) {
     _reportPeriod = period;
     _sensorPin = pin;
     _smooth = smooth;
     _fnMeasure = mf;
     _fnReport = rf;
+    setup();
+}
 
+// constructs a non-averaged reading
+Reading::Reading(byte period, byte pin, MeasureFunc mf, ReportFunc rf) {
+    _reportPeriod = period;
+    _sensorPin = pin;
+    _fnMeasure = mf;
+    _fnReport = rf;
+    setup();
+}
+
+// performs common constructor setup
+void Reading::setup() {
     _firstTime = true;
-    
     pinMode(_sensorPin, OUTPUT);
 }
 

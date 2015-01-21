@@ -44,8 +44,8 @@
 #define FREQUENCY     RF69_915MHZ
 
 Reading battery(BATTERY_CYCLE, APIN_BATTERY, SMOOTHING_FACTOR, readBattery, saveBattery);
-Reading light(LIGHT_CYCLE, DPIN_LIGHT, NO_SMOOTHING, readLight, saveLight);
 Reading temp(TEMP_CYCLE, APIN_TEMPERATURE, SMOOTHING_FACTOR, readTemp, saveTemp);
+Reading light(LIGHT_CYCLE, DPIN_LIGHT, readLight, saveLight);
 
 RFM69 radio;
 
@@ -97,12 +97,7 @@ void setup () {
     #endif
     
     setup_radio();
-    
-    pinMode(DPIN_MOTE_LED, OUTPUT);
-    pinMode(DPIN_LIGHT, OUTPUT);
-    digitalWrite(DPIN_LIGHT, HIGH);
-    
-    memset(&sensorData, 0, sizeof(sensorData));
+    setup_sensors();
     
     chBegin(mainThread);
 }
@@ -110,16 +105,39 @@ void setup () {
 //------------------------------------------------------------------------------
 // Initializes the RF radio.
 //
-static void setup_radio() {
-    #if DEBUG
-        Serial.print("setup radio...");
-    #endif
-    radio.initialize(FREQUENCY,NODEID,NETWORKID);
-    radio.setHighPower();
-    delay(1000);
-    #if DEBUG
-        Serial.println("ok!");
-    #endif
+void setup_radio() {
+  #if DEBUG
+    Serial.print("setup radio...");
+  #endif
+  
+  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.setHighPower();
+  delay(1000);
+  
+  #if DEBUG
+    Serial.println("ok!");
+  #endif
+}
+
+
+//------------------------------------------------------------------------------
+// Initializes the sensors.
+//
+void setup_sensors() {
+  #if DEBUG
+    Serial.print("setup sensors...");
+  #endif
+  
+  pinMode(DPIN_MOTE_LED, OUTPUT);
+  pinMode(DPIN_LIGHT, OUTPUT);
+  
+  digitalWrite(DPIN_LIGHT, HIGH);
+  
+  memset(&sensorData, 0, sizeof(sensorData));
+  
+  #if DEBUG
+    Serial.println("ok!");
+  #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -148,12 +166,37 @@ void loop () {
   }
   interrupts();
 
+  // recevie rf messages
+  noInterrupts();
+  if (radio.receiveDone()) {
+      if (radio.DATALEN != sizeof(Message)) {
+          Serial.print("Invalid payload received, not matching Payload struct!");
+      } else {
+          memcpy(&inbound, (byte*) radio.DATA, sizeof inbound);
+          consumeRf();
+      }
+      if (radio.ACK_REQUESTED) {
+          radio.sendACK();
+      }
+  }
+  interrupts();
+
+}
+
+//------------------------------------------------------------------------------
+// consume inbound RF message
+//
+void consumeRf() {
+  if ((inbound.msg.type == MSG_COMMAND) && (inbound.msg.destination == NODEID)) {
+    Serial.print("switch = ");
+    Serial.println(inbound.msg.data[0]);
+  }
 }
 
 //------------------------------------------------------------------------------
 // Dispatches the mote reading report over RF wireless
 //
-static void sendReadingReport() {
+void sendReadingReport() {
   
     digitalWrite(DPIN_MOTE_LED, HIGH);
     
