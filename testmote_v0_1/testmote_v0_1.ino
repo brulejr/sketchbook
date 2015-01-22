@@ -169,6 +169,7 @@ void loop () {
   // recevie rf messages
   noInterrupts();
   if (radio.receiveDone()) {
+      Serial.println("received rf message");
       if (radio.DATALEN != sizeof(Message)) {
           Serial.print("Invalid payload received, not matching Payload struct!");
       } else {
@@ -188,8 +189,9 @@ void loop () {
 //
 void consumeRf() {
   if ((inbound.msg.type == MSG_COMMAND) && (inbound.msg.destination == NODEID)) {
-    Serial.print("switch = ");
+    Serial.print("light = ");
     Serial.println(inbound.msg.data[0]);
+    digitalWrite(DPIN_LIGHT, inbound.msg.data[0]);
   }
 }
 
