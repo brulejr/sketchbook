@@ -26,10 +26,10 @@
 #define DEBUG       1   // set to 1 to display each loop() run
 #define BAUD_RATE   57600
 
-#define APIN_BATTERY      0
-#define APIN_TEMPERATURE  1
-#define DPIN_LIGHT        7
-#define DPIN_MOTE_LED     9  // moteinos have LEDs on D9
+#define APIN_BATTERY        0
+#define APIN_TEMPERATURE    1
+#define DPIN_SWITCH_LIGHT   8
+#define DPIN_MOTE_LED       9  // moteinos have LEDs on D9
 
 #define VOLTAGE           3.3
 
@@ -47,7 +47,7 @@
 
 Reading battery(BATTERY_CYCLE, APIN_BATTERY, SMOOTHING_FACTOR, readBattery, saveBattery);
 Reading temp(TEMP_CYCLE, APIN_TEMPERATURE, SMOOTHING_FACTOR, readTemp, saveTemp);
-Reading light(LIGHT_CYCLE, DPIN_LIGHT, readLight, saveLight);
+Reading light(LIGHT_CYCLE, DPIN_SWITCH_LIGHT, readLight, saveLight);
 
 RFM69 radio;
 
@@ -131,9 +131,9 @@ void setup_sensors() {
   #endif
   
   pinMode(DPIN_MOTE_LED, OUTPUT);
-  pinMode(DPIN_LIGHT, OUTPUT);
+  pinMode(DPIN_SWITCH_LIGHT, OUTPUT);
   
-  digitalWrite(DPIN_LIGHT, HIGH);
+  digitalWrite(DPIN_SWITCH_LIGHT, HIGH);
   
   memset(&sensorData, 0, sizeof(sensorData));
   
@@ -193,7 +193,7 @@ void consumeRf() {
   if ((inbound.msg.type == MSG_COMMAND) && (inbound.msg.destination == NODEID)) {
     Serial.print("light = ");
     Serial.println(inbound.msg.data[0]);
-    digitalWrite(DPIN_LIGHT, inbound.msg.data[0]);
+    digitalWrite(DPIN_SWITCH_LIGHT, inbound.msg.data[0]);
     light.measure();
     haveReadings = true;
   }
@@ -250,7 +250,7 @@ int readLight(byte pin) {
 //-----------------------------------------------------------------------------
 int readTemp(byte pin) {
     int tempRaw = analogRead(pin);
-    float tempVolts = (((float)tempRaw / 1024) * 3.3);
+    float tempVolts = (((float)tempRaw / 1024) * VOLTAGE);
     return int((tempVolts - 0.5) / 0.01);
 }
 
