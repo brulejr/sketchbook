@@ -6,7 +6,9 @@
    Circuit:
    * Moteino R4 w/ RFM69HW RF module
    * Battery voltage monitor attached to analog pin 0
-   * Temperature sensor attached to digital pin 3
+   * Temperature sensor attached to analog pin 1
+   * Light LED attached to digital pin 7
+   * Light Switch attached to digital pin 8
    * RF Status LED attached to digital pin 9
  
    Created 20-JAN-2015 by Jon Brule
@@ -26,8 +28,8 @@
 
 #define APIN_BATTERY      0
 #define APIN_TEMPERATURE  1
-#define DPIN_LIGHT        9
-#define DPIN_MOTE_LED     12  // moteinos have LEDs on D9
+#define DPIN_LIGHT        7
+#define DPIN_MOTE_LED     9  // moteinos have LEDs on D9
 
 #define VOLTAGE           3.3
 
