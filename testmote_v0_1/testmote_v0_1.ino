@@ -192,6 +192,8 @@ void consumeRf() {
     Serial.print("light = ");
     Serial.println(inbound.msg.data[0]);
     digitalWrite(DPIN_LIGHT, inbound.msg.data[0]);
+    light.measure();
+    haveReadings = true;
   }
 }
 
