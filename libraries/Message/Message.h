@@ -9,7 +9,7 @@
 #include "Arduino.h"
 
 #define MSG_LENGTH        20
-#define MSG_DATA_LENGTH   (MSG_LENGTH - 5)
+#define MSG_DATA_LENGTH   (MSG_LENGTH - 6)
 
 #define RF_TO_MQTT     0x10
 #define MQTT_TO_RF     0x20
@@ -24,6 +24,7 @@ typedef struct {
     byte type;
     byte source;
     byte destination;
+    byte component;
     int rssi;
     byte data[MSG_DATA_LENGTH];
 } MessageRecord;

@@ -28,7 +28,7 @@
 
 #define APIN_BATTERY        0
 #define APIN_TEMPERATURE    1
-#define DPIN_SWITCH_LIGHT   8
+#define DPIN_TOGGLE         8
 #define DPIN_MOTE_LED       9  // moteinos have LEDs on D9
 
 #define VOLTAGE           3.3
@@ -37,8 +37,8 @@
 #define REPORT_PERIOD     5000
 #define SMOOTHING_FACTOR  3
 #define BATTERY_CYCLE     10
-#define LIGHT_CYCLE       1
 #define TEMP_CYCLE        5
+#define TOGGLE_CYCLE      1
 
 #define NODEID        3   // unique for each node on same network
 #define GATEWAYID     1
@@ -47,14 +47,14 @@
 
 Reading battery(BATTERY_CYCLE, APIN_BATTERY, SMOOTHING_FACTOR, readBattery, saveBattery);
 Reading temp(TEMP_CYCLE, APIN_TEMPERATURE, SMOOTHING_FACTOR, readTemp, saveTemp);
-Reading light(LIGHT_CYCLE, DPIN_SWITCH_LIGHT, readLight, saveLight);
+Reading toggle(TOGGLE_CYCLE, DPIN_TOGGLE, readToggle, saveToggle);
 
 RFM69 radio;
 
 struct SensorData {
     byte tempInC;  // temperature sensor: C * 10
     byte battery;  // battery voltage
-    byte light;    // light (0 or 1)
+    byte toggle;   // toggle (0 or 1)
 } sensorData;
 boolean haveReadings = false;
 
@@ -80,7 +80,7 @@ static WORKING_AREA(waThread2, 50);
 static msg_t ReadingThread(void *arg) {
   while (1) {
     temp.measure();
-    light.measure();
+    toggle.measure();
     battery.measure();
     chThdSleepMilliseconds(MEASURE_PERIOD);
   }
@@ -131,9 +131,9 @@ void setup_sensors() {
   #endif
   
   pinMode(DPIN_MOTE_LED, OUTPUT);
-  pinMode(DPIN_SWITCH_LIGHT, OUTPUT);
+  pinMode(DPIN_TOGGLE, OUTPUT);
   
-  digitalWrite(DPIN_SWITCH_LIGHT, HIGH);
+  digitalWrite(DPIN_TOGGLE, HIGH);
   
   memset(&sensorData, 0, sizeof(sensorData));
   
@@ -193,8 +193,8 @@ void consumeRf() {
   if ((inbound.msg.type == MSG_COMMAND) && (inbound.msg.destination == NODEID)) {
     Serial.print("light = ");
     Serial.println(inbound.msg.data[0]);
-    digitalWrite(DPIN_SWITCH_LIGHT, inbound.msg.data[0]);
-    light.measure();
+    digitalWrite(DPIN_TOGGLE, inbound.msg.data[0]);
+    toggle.measure();
     haveReadings = true;
   }
 }
@@ -216,8 +216,8 @@ void sendReadingReport() {
     #if DEBUG
         Serial.print("Reading<temperature = ");
         Serial.print(sensorData.tempInC);
-        Serial.print(", light = ");
-        Serial.print(sensorData.light);
+        Serial.print(", toggle = ");
+        Serial.print(sensorData.toggle);
         Serial.print(", battery = ");
         Serial.print(sensorData.battery);
         Serial.println(">");
@@ -243,15 +243,15 @@ int readBattery(byte pin) {
 }
 
 //-----------------------------------------------------------------------------
-int readLight(byte pin) {
-    return digitalRead(pin);
-}
-
-//-----------------------------------------------------------------------------
 int readTemp(byte pin) {
     int tempRaw = analogRead(pin);
     float tempVolts = (((float)tempRaw / 1024) * VOLTAGE);
     return int((tempVolts - 0.5) / 0.01);
+}
+
+//-----------------------------------------------------------------------------
+int readToggle(byte pin) {
+    return digitalRead(pin);
 }
 
 //-----------------------------------------------------------------------------
@@ -260,12 +260,12 @@ void saveBattery(int reading) {
 }
 
 //-----------------------------------------------------------------------------
-void saveLight(int reading) {
-    sensorData.light = (byte) reading;
+void saveTemp(int reading) {
+    sensorData.tempInC = (byte) reading;
 }
 
 //-----------------------------------------------------------------------------
-void saveTemp(int reading) {
-    sensorData.tempInC = (byte) reading;
+void saveToggle(int reading) {
+    sensorData.toggle = (byte) reading;
 }
 
