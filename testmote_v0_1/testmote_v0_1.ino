@@ -222,7 +222,7 @@ void consumeRf() {
         dimmerState -= DIMMER_INTERVAL;
         dimmerState = (dimmerState < 0) ? 0 : dimmerState;
       } else if (inbound.msg.data[0] == COMMAND_PERCENTAGE) {
-        dimmerState = inbound.msg.data[1];
+        dimmerState = round(((float) inbound.msg.data[1] / (float) 100) * (float) 255);
       }
       analogWrite(DPIN_DIMMER, dimmerState);
       dimmer.measure();
