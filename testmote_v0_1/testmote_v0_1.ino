@@ -28,6 +28,7 @@
 
 #define APIN_BATTERY        0
 #define APIN_TEMPERATURE    1
+#define DPIN_DIMMER         6
 #define DPIN_TOGGLE         8
 #define DPIN_MOTE_LED       9  // moteinos have LEDs on D9
 
@@ -36,7 +37,8 @@
 #define MEASURE_PERIOD    1000
 #define REPORT_PERIOD     5000
 #define SMOOTHING_FACTOR  3
-#define BATTERY_CYCLE     10
+#define BATTERY_CYCLE     5
+#define DIMMER_CYCLE      1
 #define TEMP_CYCLE        5
 #define TOGGLE_CYCLE      1
 
@@ -45,7 +47,8 @@
 #define NETWORKID     99  // same for all nodes that talk to each other
 #define FREQUENCY     RF69_915MHZ
 
-Reading battery(BATTERY_CYCLE, APIN_BATTERY, SMOOTHING_FACTOR, readBattery, saveBattery);
+Reading battery(DIMMER_CYCLE, DPIN_DIMMER, SMOOTHING_FACTOR, readDimmer, saveDimmer);
+Reading dimmer(BATTERY_CYCLE, APIN_BATTERY, SMOOTHING_FACTOR, readBattery, saveBattery);
 Reading temp(TEMP_CYCLE, APIN_TEMPERATURE, SMOOTHING_FACTOR, readTemp, saveTemp);
 Reading toggle(TOGGLE_CYCLE, DPIN_TOGGLE, readToggle, saveToggle);
 
@@ -55,8 +58,11 @@ struct SensorData {
     byte tempInC;  // temperature sensor: C * 10
     byte battery;  // battery voltage
     byte toggle;   // toggle (0 or 1)
+    byte dimmer;   // dimmer
 } sensorData;
 boolean haveReadings = false;
+
+int dimmerState = 25;
 
 Message inbound, outbound;
 
@@ -81,6 +87,7 @@ static msg_t ReadingThread(void *arg) {
   while (1) {
     temp.measure();
     toggle.measure();
+    dimmer.measure();
     battery.measure();
     chThdSleepMilliseconds(MEASURE_PERIOD);
   }
@@ -131,9 +138,12 @@ void setup_sensors() {
   #endif
   
   pinMode(DPIN_MOTE_LED, OUTPUT);
-  pinMode(DPIN_TOGGLE, OUTPUT);
   
+  pinMode(DPIN_TOGGLE, OUTPUT);
   digitalWrite(DPIN_TOGGLE, HIGH);
+
+  pinMode(DPIN_DIMMER, OUTPUT);
+  analogWrite(DPIN_DIMMER, dimmerState);
   
   memset(&sensorData, 0, sizeof(sensorData));
   
@@ -191,7 +201,7 @@ void loop () {
 //
 void consumeRf() {
   if ((inbound.msg.type == MSG_COMMAND) && (inbound.msg.destination == NODEID)) {
-    Serial.print("light = ");
+    Serial.print("toggle = ");
     Serial.println(inbound.msg.data[0]);
     digitalWrite(DPIN_TOGGLE, inbound.msg.data[0]);
     toggle.measure();
@@ -210,6 +220,7 @@ void sendReadingReport() {
     outbound.msg.type = MSG_READING;
     outbound.msg.source = NODEID;
     outbound.msg.destination = 0;
+    outbound.msg.component = 0;
     outbound.msg.rssi = 0;
     memcpy(&outbound.msg.data, &sensorData, sizeof(sensorData));
     
@@ -218,6 +229,8 @@ void sendReadingReport() {
         Serial.print(sensorData.tempInC);
         Serial.print(", toggle = ");
         Serial.print(sensorData.toggle);
+        Serial.print(", dimmer = ");
+        Serial.print(sensorData.dimmer);
         Serial.print(", battery = ");
         Serial.print(sensorData.battery);
         Serial.println(">");
@@ -243,6 +256,11 @@ int readBattery(byte pin) {
 }
 
 //-----------------------------------------------------------------------------
+int readDimmer(byte pin) {
+    return dimmerState;
+}
+
+//-----------------------------------------------------------------------------
 int readTemp(byte pin) {
     int tempRaw = analogRead(pin);
     float tempVolts = (((float)tempRaw / 1024) * VOLTAGE);
@@ -257,6 +275,11 @@ int readToggle(byte pin) {
 //-----------------------------------------------------------------------------
 void saveBattery(int reading) {
     sensorData.battery = (byte) reading;
+}
+
+//-----------------------------------------------------------------------------
+void saveDimmer(int reading) {
+    sensorData.dimmer = (byte) reading;
 }
 
 //-----------------------------------------------------------------------------

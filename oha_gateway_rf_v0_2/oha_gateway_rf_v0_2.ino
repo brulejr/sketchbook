@@ -140,6 +140,7 @@ boolean receiveFromSerial() {
     serialMsg.msg.type = root["type"];
     serialMsg.msg.source = root["src"];
     serialMsg.msg.destination = root["dest"];
+    serialMsg.msg.component = root["comp"];
     serialMsg.msg.rssi = 0x00;
     for (int i = 0; i < MSG_DATA_LENGTH; i++) {
       serialMsg.msg.data[i] = root["data"][i];
@@ -167,6 +168,7 @@ void sendToSerial() {
   root["type"] = rfMsg.msg.type;
   root["src"] = rfMsg.msg.source;
   root["dest"] = rfMsg.msg.destination;
+  root["comp"] = rfMsg.msg.component;
   root["rssi"] = rfMsg.msg.rssi;
   JsonArray& data = root.createNestedArray("data");
   for (int i = 0; i < MSG_DATA_LENGTH; i++) {  
