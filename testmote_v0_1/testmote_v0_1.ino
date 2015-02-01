@@ -7,11 +7,11 @@
    * Moteino R4 w/ RFM69HW RF module
    * Battery voltage monitor attached to analog pin 0
    * Temperature sensor attached to analog pin 1
-   * Light LED attached to digital pin 7
-   * Light Switch attached to digital pin 8
+   * Dimmer LED attached to digital pin 6
+   * Switch LED attached to digital pin 8
    * RF Status LED attached to digital pin 9
  
-   Created 20-JAN-2015 by Jon Brule
+   Created 01-FEB-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
 #include <ChibiOS_AVR.h>
 #include <Heartbeat.h>
@@ -34,6 +34,12 @@
 
 #define VOLTAGE           3.3
 
+#define COMPONENT_TOGGLE  1
+#define COMPONENT_DIMMER  2
+
+#define COMMAND_INCREASE  1
+#define COMMAND_DECREASE  2
+
 #define MEASURE_PERIOD    1000
 #define REPORT_PERIOD     5000
 #define SMOOTHING_FACTOR  3
@@ -41,6 +47,8 @@
 #define DIMMER_CYCLE      1
 #define TEMP_CYCLE        5
 #define TOGGLE_CYCLE      1
+
+#define DIMMER_INTERVAL   15
 
 #define NODEID        3   // unique for each node on same network
 #define GATEWAYID     1
@@ -62,7 +70,7 @@ struct SensorData {
 } sensorData;
 boolean haveReadings = false;
 
-int dimmerState = 25;
+int dimmerState = 0;
 
 Message inbound, outbound;
 
@@ -140,7 +148,7 @@ void setup_sensors() {
   pinMode(DPIN_MOTE_LED, OUTPUT);
   
   pinMode(DPIN_TOGGLE, OUTPUT);
-  digitalWrite(DPIN_TOGGLE, HIGH);
+  digitalWrite(DPIN_TOGGLE, LOW);
 
   pinMode(DPIN_DIMMER, OUTPUT);
   analogWrite(DPIN_DIMMER, dimmerState);
@@ -162,7 +170,7 @@ void mainThread () {
   // start temperature thread
   chThdCreateStatic(waThread2, sizeof(waThread2),
                     NORMALPRIO + 2, ReadingThread, NULL);
-                    
+                      
   while (true)
     loop();
 }
@@ -201,11 +209,29 @@ void loop () {
 //
 void consumeRf() {
   if ((inbound.msg.type == MSG_COMMAND) && (inbound.msg.destination == NODEID)) {
-    Serial.print("toggle = ");
-    Serial.println(inbound.msg.data[0]);
-    digitalWrite(DPIN_TOGGLE, inbound.msg.data[0]);
-    toggle.measure();
-    haveReadings = true;
+    if (inbound.msg.component == COMPONENT_TOGGLE) {
+      digitalWrite(DPIN_TOGGLE, inbound.msg.data[0]);
+      toggle.measure();
+      haveReadings = true;
+    } else if (inbound.msg.component == COMPONENT_DIMMER) {
+      Serial.print("rf msg component = ");
+      Serial.print(inbound.msg.component);
+      Serial.print(", command = ");
+      Serial.print(inbound.msg.data[0]);
+      if (inbound.msg.data[0] == COMMAND_INCREASE) {
+        dimmerState += DIMMER_INTERVAL;
+        dimmerState = (dimmerState > 255) ? 255 : dimmerState;
+        analogWrite(DPIN_DIMMER, dimmerState);
+        dimmer.measure();
+        haveReadings = true;
+      } else if (inbound.msg.data[0] == COMMAND_DECREASE) {
+        dimmerState -= DIMMER_INTERVAL;
+        dimmerState = (dimmerState < 0) ? 0 : dimmerState;
+        analogWrite(DPIN_DIMMER, dimmerState);
+        dimmer.measure();
+        haveReadings = true;
+      }
+    }
   }
 }
 
