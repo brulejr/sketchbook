@@ -32,23 +32,24 @@
 #define DPIN_TOGGLE         8
 #define DPIN_MOTE_LED       9  // moteinos have LEDs on D9
 
-#define VOLTAGE           3.3
+#define VOLTAGE             3.3
 
-#define COMPONENT_TOGGLE  1
-#define COMPONENT_DIMMER  2
+#define COMPONENT_TOGGLE    1
+#define COMPONENT_DIMMER    2
 
-#define COMMAND_INCREASE  1
-#define COMMAND_DECREASE  2
+#define COMMAND_INCREASE    1
+#define COMMAND_DECREASE    2
+#define COMMAND_PERCENTAGE  3
 
-#define MEASURE_PERIOD    1000
-#define REPORT_PERIOD     5000
-#define SMOOTHING_FACTOR  3
-#define BATTERY_CYCLE     5
-#define DIMMER_CYCLE      1
-#define TEMP_CYCLE        5
-#define TOGGLE_CYCLE      1
+#define MEASURE_PERIOD      1000
+#define REPORT_PERIOD       5000
+#define SMOOTHING_FACTOR    3
+#define BATTERY_CYCLE       5
+#define DIMMER_CYCLE        1
+#define TEMP_CYCLE          5
+#define TOGGLE_CYCLE        1
 
-#define DIMMER_INTERVAL   15
+#define DIMMER_INTERVAL     15
 
 #define NODEID        3   // unique for each node on same network
 #define GATEWAYID     1
@@ -214,23 +215,18 @@ void consumeRf() {
       toggle.measure();
       haveReadings = true;
     } else if (inbound.msg.component == COMPONENT_DIMMER) {
-      Serial.print("rf msg component = ");
-      Serial.print(inbound.msg.component);
-      Serial.print(", command = ");
-      Serial.print(inbound.msg.data[0]);
       if (inbound.msg.data[0] == COMMAND_INCREASE) {
         dimmerState += DIMMER_INTERVAL;
         dimmerState = (dimmerState > 255) ? 255 : dimmerState;
-        analogWrite(DPIN_DIMMER, dimmerState);
-        dimmer.measure();
-        haveReadings = true;
       } else if (inbound.msg.data[0] == COMMAND_DECREASE) {
         dimmerState -= DIMMER_INTERVAL;
         dimmerState = (dimmerState < 0) ? 0 : dimmerState;
-        analogWrite(DPIN_DIMMER, dimmerState);
-        dimmer.measure();
-        haveReadings = true;
+      } else if (inbound.msg.data[0] == COMMAND_PERCENTAGE) {
+        dimmerState = inbound.msg.data[1];
       }
+      analogWrite(DPIN_DIMMER, dimmerState);
+      dimmer.measure();
+      haveReadings = true;
     }
   }
 }
