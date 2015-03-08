@@ -12,10 +12,11 @@
  
    Created 05-MAR-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
+#include <avr/sleep.h>
+#include <avr/power.h>
 #include <Message.h>
 #include <RFM69.h>
 #include <SPI.h>
-#include <TimerOne.h>
 #include "Sensors.h"
 
 #define VERSION        "v0.1"
@@ -33,6 +34,8 @@
 
 #define MOTE_LED_PIN   9  // moteinos have LEDs on D9
 
+
+volatile int f_timer = 0;
 
 Sensors* sensors;
 SensorData* sensorData;
@@ -53,6 +56,7 @@ void setup () {
     #endif
     setupRadio();
     setupSensors();
+    setupSleep();
 }
 
 void setupRadio() {
@@ -74,8 +78,21 @@ void setupSensors() {
     sensorData = new SensorData();
     memset(sensorData, 0, sizeof(*sensorData));
     
-    Timer1.initialize(REPORT_PERIOD);
-    Timer1.attachInterrupt(report);
+    
+}
+
+void setupSleep() {
+    // normal timer operation
+    TCCR1A = 0x00;
+    
+    // clear the timer counter register
+    TCNT1=0x0000;
+    
+    // configure the prescaler for 1:1024, a 4.09 sec timeout
+    TCCR1B = 0x05;
+    
+    // enable the timer overlow interrupt
+    TIMSK1=0x01;
 }
 
 
@@ -83,17 +100,59 @@ void setupSensors() {
 // Main Loop
 //
 void loop () {
-  
-    noInterrupts();
-    sensors->measure();
-    interrupts();
+    if (f_timer == 1) {
+        f_timer = 0;
+        digitalWrite(MOTE_LED_PIN, HIGH);
+        
+        sensors->measure();
+        report();
+        
+        digitalWrite(MOTE_LED_PIN, LOW);
+        enterSleep();
+    }
     
 }
 
 //-----------------------------------------------------------------------------
-void report() {
-    digitalWrite(MOTE_LED_PIN, HIGH);
-    
+// Timer1 Interrupt Service Routine
+ISR(TIMER1_OVF_vect) {
+     if (f_timer == 0) {
+         f_timer = 1;
+     }
+}
+
+//-----------------------------------------------------------------------------
+// sleeps the microcontroller until the internal timer expires
+void enterSleep(void) {
+  set_sleep_mode(SLEEP_MODE_IDLE);
+  
+  sleep_enable();
+
+  // Disable all of the unused peripherals. This will reduce power
+  // consumption further and, more importantly, some of these
+  // peripherals may generate interrupts that will wake our Arduino from
+  // sleep!
+  power_adc_disable();
+  power_spi_disable();
+  power_timer0_disable();
+  power_timer2_disable();
+  power_twi_disable();  
+
+  // Now enter sleep mode
+  sleep_mode();
+  
+  // NOTE: the program will continue from here after the timer timeout
+  
+  // disable sleep
+  sleep_disable();
+  
+  // re-enable the peripherals
+  power_all_enable();
+}
+
+//-----------------------------------------------------------------------------
+// generates a sensor report, sending it to the RF gateway
+void report() {    
     sensors->report(sensorData);
     
     memset(&outbound, 0, sizeof(outbound));
@@ -113,7 +172,5 @@ void report() {
             Serial.println("No ACK!");
         #endif
     }
-    
-    digitalWrite(MOTE_LED_PIN, LOW);
 }
 
