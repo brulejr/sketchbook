@@ -5,16 +5,18 @@
 */
 #include "Sensors.h"
 
+#define DEBUG               1
+
 #define BATTERY_PIN         A0
 #define BATTERY_PERIOD      5000 
 #define LIGHT_PIN           A1
 #define LIGHT_PERIOD        5000
 #define TEMPERATURE_PIN     A2
 #define TEMPERATURE_PERIOD  500
-#define WATER_LEAK_PIN     2
-#define WATER_LEAK_PERIOD  500
+#define WATER_LEAK_PIN      2
+#define WATER_LEAK_PERIOD   500
 
-#define VOLTAGE          3.3
+#define VOLTAGE             3.3
 
 //-----------------------------------------------------------------------------
 Sensors::Sensors() {
@@ -62,13 +64,13 @@ void Sensors::report(SensorData* sensorData) {
 //-----------------------------------------------------------------------------
 int Sensors::readBattery(byte pin) {
     int raw = analogRead(pin);
-    return int(((raw / 1024) * VOLTAGE) * 10);
+    return int((((float) raw / 255) * VOLTAGE) * 10);
 }
 
 //-----------------------------------------------------------------------------
 int Sensors::readLight(byte pin) {
     int raw = analogRead(pin);
-    return int(255 * ((float)raw / 1024));
+    return 255 - int(255 * ((float)raw / 1024));
 }
 
 //-----------------------------------------------------------------------------

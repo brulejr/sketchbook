@@ -27,7 +27,7 @@
 
 #define REPORT_PERIOD  1000 * 1000
 
-#define NODEID         3   // unique for each node on same network
+#define NODEID         5   // unique for each node on same network
 #define GATEWAYID      1
 #define NETWORKID      99  // same for all nodes that talk to each other
 #define FREQUENCY      RF69_915MHZ
@@ -161,8 +161,11 @@ void report() {
     outbound.msg.destination = 0;
     outbound.msg.component = 0;
     outbound.msg.rssi = 0;
-    memcpy(&outbound.msg.data, &sensorData, sizeof(sensorData));
+    memcpy(&outbound.msg.data, sensorData, sizeof(*sensorData));
     
+    #if DEBUG
+        Serial.print("Broadcasting report to gateway...");
+    #endif
     if (radio.sendWithRetry(GATEWAYID, outbound.raw, MSG_LENGTH)) {
         #if DEBUG
             Serial.println("ACK");
