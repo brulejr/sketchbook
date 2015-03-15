@@ -36,54 +36,53 @@ Sensors::Sensors() {
 
 //-----------------------------------------------------------------------------
 void Sensors::measure() {
-    _battery->measure();
-    _light->measure();
-    _temperature->measure();
-    _waterLeak->measure();
+  _battery->measure();
+  _light->measure();
+  _temperature->measure();
+  _waterLeak->measure();
 }
 
 //-----------------------------------------------------------------------------
 void Sensors::report(SensorData* sensorData) {
-    sensorData->battery = _battery->reading();
-    sensorData->light = _light->reading();
-    sensorData->temperature = _temperature->reading();
-    sensorData->waterLeak = _waterLeak->reading();
-    #if DEBUG
-        Serial.print("Sensors<battery = ");
-        Serial.print(sensorData->battery);
-        Serial.print(", light = ");
-        Serial.print(sensorData->light);
-        Serial.print(", temperature = ");
-        Serial.print(sensorData->temperature);
-        Serial.print(", waterLeak = ");
-        Serial.print(sensorData->waterLeak);
-        Serial.println(">");
-    #endif
+  sensorData->battery = _battery->reading();
+  sensorData->light = _light->reading();
+  sensorData->temperature = _temperature->reading();
+  sensorData->waterLeak = _waterLeak->reading();
+  #if DEBUG
+    Serial.print("Sensors<battery = ");
+    Serial.print(sensorData->battery);
+    Serial.print(", light = ");
+    Serial.print(sensorData->light);
+    Serial.print(", temperature = ");
+    Serial.print(sensorData->temperature);
+    Serial.print(", waterLeak = ");
+    Serial.print(sensorData->waterLeak);
+    Serial.println(">");
+  #endif
 }
 
 //-----------------------------------------------------------------------------
 int Sensors::readBattery(byte pin) {
-    int raw = analogRead(pin);
-    return int((((float) raw / 255) * VOLTAGE) * 10);
+  int raw = analogRead(pin);
+  return int((((float) raw / 255) * VOLTAGE) * 10);
 }
 
 //-----------------------------------------------------------------------------
 int Sensors::readLight(byte pin) {
-    int raw = analogRead(pin);
-    return 255 - int(255 * ((float)raw / 1024));
+  int raw = analogRead(pin);
+  return 255 - int(255 * ((float)raw / 1024));
 }
 
 //-----------------------------------------------------------------------------
 int Sensors::readTemperature(byte pin) {
-    int tempRaw = analogRead(pin);
-    float tempVolts = (((float)tempRaw / 1024) * VOLTAGE);
-    return int((tempVolts - 0.5) / 0.01);
+  int tempRaw = analogRead(pin);
+  float tempVolts = (((float)tempRaw / 1024) * VOLTAGE);
+  return int((tempVolts - 0.5) / 0.01);
 }
-
 
 //-----------------------------------------------------------------------------
 int Sensors::readWaterLeak(byte pin) {
-    return digitalRead(pin);
+  return digitalRead(pin);
 }
 
 

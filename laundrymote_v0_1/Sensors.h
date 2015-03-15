@@ -10,26 +10,26 @@
 #include "Reading.h"
 
 typedef struct SensorData {
-    byte battery;      // battery voltage
-    byte light;        // 0 - 255
-    byte temperature;  // temperature sensor: C * 10
-    byte waterLeak;   // 0 or 1
+  byte battery;      // battery voltage
+  byte light;        // 0 - 255
+  byte temperature;  // temperature sensor: C * 10
+  byte waterLeak;   // 0 or 1
 };
 
 class Sensors {
-    public:
-        Sensors();
-        void measure();
-        void report(SensorData* sensorData);
-        static int readBattery(byte pin);
-        static int readLight(byte pin);
-        static int readTemperature(byte pin);
-        static int readWaterLeak(byte pin);
-    private:
-        Reading* _battery;
-        Reading* _light;
-        Reading* _temperature;
-        Reading* _waterLeak;
+  public:
+    Sensors();
+    void measure();
+    void report(SensorData* sensorData);
+    static int readBattery(byte pin);
+    static int readLight(byte pin);
+    static int readTemperature(byte pin);
+    static int readWaterLeak(byte pin);
+  private:
+    Reading* _battery;
+    Reading* _light;
+    Reading* _temperature;
+    Reading* _waterLeak;
 };
 
 #endif
