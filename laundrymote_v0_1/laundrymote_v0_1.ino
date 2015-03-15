@@ -10,7 +10,7 @@
    * A2 - Temperature
    * D3 - Water Leak detector
  
-   Created 05-MAR-2015 by Jon Brule
+   Created 15-MAR-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
 #include <avr/sleep.h>
 #include <avr/power.h>
@@ -48,51 +48,50 @@ Message inbound, outbound;
 // Initialization
 //
 void setup () {
-    #if SERIAL || DEBUG
-        Serial.begin(BAUD_RATE);
-        Serial.print("\n[laundryMote - ");
-        Serial.print(VERSION);
-        Serial.println("]");
-    #endif
-    setupRadio();
-    setupSensors();
-    setupSleep();
+  #if SERIAL || DEBUG
+    Serial.begin(BAUD_RATE);
+    Serial.print("\n[laundryMote - ");
+    Serial.print(VERSION);
+    Serial.println("]");
+  #endif
+  setupRadio();
+  setupSensors();
+  setupSleep();
 }
 
 void setupRadio() {
-    #if DEBUG
-        Serial.print("setup radio...");
-    #endif
+  #if DEBUG
+    Serial.print("setup radio...");
+  #endif
   
-    radio.initialize(FREQUENCY,NODEID,NETWORKID);
-    radio.setHighPower();
-    delay(1000);
+  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.setHighPower();
+  delay(1000);
   
-    #if DEBUG
-        Serial.println("ok!");
-    #endif
+  #if DEBUG
+    Serial.println("ok!");
+  #endif
 }
 
 void setupSensors() {
-    sensors = new Sensors();
-    sensorData = new SensorData();
-    memset(sensorData, 0, sizeof(*sensorData));
-    
-    
+  sensors = new Sensors();
+  sensorData = new SensorData();
+  memset(sensorData, 0, sizeof(*sensorData));
+  attachInterrupt(1, waterLeak, CHANGE);
 }
 
 void setupSleep() {
-    // normal timer operation
-    TCCR1A = 0x00;
+  // normal timer operation
+  TCCR1A = 0x00;
     
-    // clear the timer counter register
-    TCNT1=0x0000;
+  // clear the timer counter register
+  TCNT1 = 0x0000;
     
-    // configure the prescaler for 1:1024, a 4.09 sec timeout
-    TCCR1B = 0x05;
+  // configure the prescaler for 1:1024, a 4.09 sec timeout
+  TCCR1B = 0x05;
     
-    // enable the timer overlow interrupt
-    TIMSK1=0x01;
+  // enable the timer overlow interrupt
+  TIMSK1 = 0x01;
 }
 
 
@@ -100,31 +99,44 @@ void setupSleep() {
 // Main Loop
 //
 void loop () {
-    if (f_timer == 1) {
-        f_timer = 0;
-        enterSleep();
-    }
-    
+  if (f_timer == 1) {
+    f_timer = 0;
+    enterSleep();
+  }   
 }
 
 //-----------------------------------------------------------------------------
-// Timer1 Interrupt Service Routine
+// ISR - Water Leak
+void waterLeak() {
+  #if DEBUG
+    Serial.println("WATER LEAK detcted!!!");
+  #endif
+  
+  noInterrupts();
+  digitalWrite(MOTE_LED_PIN, HIGH);        
+  sensors->measure();
+  report(MSG_ALERT, 1);
+  digitalWrite(MOTE_LED_PIN, LOW);
+  interrupts();  
+}
+
+//-----------------------------------------------------------------------------
+// ISR - Sensor Measurement / Report
 ISR(TIMER1_OVF_vect) {
-     if (f_timer == 0) {
-        f_timer = 1;
+  if (f_timer == 0) {
+    f_timer = 1;
         
-        noInterrupts();
-        digitalWrite(MOTE_LED_PIN, HIGH);        
-        sensors->measure();
-        report();
-        digitalWrite(MOTE_LED_PIN, LOW);
-        interrupts();         
-        
-     }
+    noInterrupts();
+    digitalWrite(MOTE_LED_PIN, HIGH);        
+    sensors->measure();
+    report(MSG_READING, 0);
+    digitalWrite(MOTE_LED_PIN, LOW);
+    interrupts();
+  }
 }
 
 //-----------------------------------------------------------------------------
-// sleeps the microcontroller until the internal timer expires
+// Sleeps the microcontroller
 void enterSleep(void) {
   set_sleep_mode(SLEEP_MODE_IDLE);
   
@@ -153,29 +165,29 @@ void enterSleep(void) {
 }
 
 //-----------------------------------------------------------------------------
-// generates a sensor report, sending it to the RF gateway
-void report() {    
-    sensors->report(sensorData);
+// Generates a sensor report, sending it to the RF gateway
+void report(byte type, byte component) {
+  sensors->report(sensorData);
     
-    memset(&outbound, 0, sizeof(outbound));
-    outbound.msg.type = MSG_READING;
-    outbound.msg.source = NODEID;
-    outbound.msg.destination = 0;
-    outbound.msg.component = 0;
-    outbound.msg.rssi = 0;
-    memcpy(&outbound.msg.data, sensorData, sizeof(*sensorData));
+  memset(&outbound, 0, sizeof(outbound));
+  outbound.msg.type = type;
+  outbound.msg.source = NODEID;
+  outbound.msg.destination = 0;
+  outbound.msg.component = component;
+  outbound.msg.rssi = 0;
+  memcpy(&outbound.msg.data, sensorData, sizeof(*sensorData));
     
+  #if DEBUG
+    Serial.print("Broadcasting report to gateway...");
+  #endif
+  if (radio.sendWithRetry(GATEWAYID, outbound.raw, MSG_LENGTH)) {
     #if DEBUG
-        Serial.print("Broadcasting report to gateway...");
+      Serial.println("ACK");
     #endif
-    if (radio.sendWithRetry(GATEWAYID, outbound.raw, MSG_LENGTH)) {
-        #if DEBUG
-            Serial.println("ACK");
-        #endif
-    } else {
-        #if DEBUG
-            Serial.println("No ACK!");
-        #endif
-    }
+  } else {
+    #if DEBUG
+      Serial.println("No ACK!");
+    #endif
+  }
 }
 
