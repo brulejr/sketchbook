@@ -8,7 +8,7 @@
    * A0 - Battery voltage monitor
    * A1 - Light detector
    * A2 - Temperature
-   * D2 - Water Leak detector
+   * D3 - Water Leak detector
  
    Created 05-MAR-2015 by Jon Brule
 ----------------------------------------------------------------------------- */

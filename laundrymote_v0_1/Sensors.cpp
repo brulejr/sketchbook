@@ -13,7 +13,7 @@
 #define LIGHT_PERIOD        5000
 #define TEMPERATURE_PIN     A2
 #define TEMPERATURE_PERIOD  500
-#define WATER_LEAK_PIN      2
+#define WATER_LEAK_PIN      3
 #define WATER_LEAK_PERIOD   500
 
 #define VOLTAGE             3.3
