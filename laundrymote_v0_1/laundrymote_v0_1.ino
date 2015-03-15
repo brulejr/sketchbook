@@ -102,12 +102,14 @@ void setupSleep() {
 void loop () {
     if (f_timer == 1) {
         f_timer = 0;
-        digitalWrite(MOTE_LED_PIN, HIGH);
-        
+
+        noInterrupts();
+        digitalWrite(MOTE_LED_PIN, HIGH);        
         sensors->measure();
         report();
-        
         digitalWrite(MOTE_LED_PIN, LOW);
+        interrupts();
+        
         enterSleep();
     }
     
