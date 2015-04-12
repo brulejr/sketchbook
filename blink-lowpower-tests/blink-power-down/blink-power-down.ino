@@ -6,7 +6,8 @@
 
 #define VERSION    "v0.1"
 
-const int LED_PIN = 13;
+const int MOTE_LED_PIN = 9;
+const int ADDL_LED_PIN = 13;
 const int WAKEUP_PIN = 3;
 const int MANY = 4;
 const int FEW = 1;
@@ -26,10 +27,12 @@ void setup() {
   DDRB = B00000000;    // set pins 8 to 13 as inputs
   PORTD |= B11111100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
   PORTB |= B11111111;  // enable pullups on pins 8 to 13
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(MOTE_LED_PIN, OUTPUT);
+  pinMode(ADDL_LED_PIN, OUTPUT);
   pinMode(WAKEUP_PIN, INPUT);
 
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(MOTE_LED_PIN, LOW);
+  digitalWrite(ADDL_LED_PIN, LOW);
   adjustBlinkTimes(WAKEUP_PIN);
 }
 
@@ -37,12 +40,14 @@ void loop() {
   attachInterrupt(1, wakeUp, CHANGE);
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   detachInterrupt(1); 
-  blink(LED_PIN, blinkTimes);
+  blink(MOTE_LED_PIN, blinkTimes);
+  blink(ADDL_LED_PIN, blinkTimes);
 }
 
 void blink(const int pin, const int times) {
   #if DEBUG
     Serial.println("blink() called");
+    Serial.flush();
   #endif
   for (int i = 1; i <= times; i++) {
     digitalWrite(pin, HIGH);
@@ -59,6 +64,7 @@ void adjustBlinkTimes(const int pin) {
 void wakeUp() {
   #if DEBUG
     Serial.println("wakeUp() called");
+    Serial.flush();
   #endif 
   adjustBlinkTimes(WAKEUP_PIN);
 }
