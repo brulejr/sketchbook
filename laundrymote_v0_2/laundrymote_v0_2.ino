@@ -5,9 +5,6 @@
  
    Circuit:
    * Moteino R4 w/ RFM69HW RF module
-   * A0 - Battery voltage monitor
-   * A1 - Light detector
-   * A2 - Temperature
    * D3 - Water Leak detector
  
    Created 12-APR-2015 by Jon Brule
@@ -33,7 +30,6 @@
 #define FREQUENCY      RF69_915MHZ
 
 const int MOTE_LED_PIN = 9;
-const int EXTR_LED_PIN = 13;
 
 Sensors* sensors;
 SensorData* sensorData;
@@ -69,9 +65,7 @@ void setupPorts() {
 
 void setupLeds() {
   pinMode(MOTE_LED_PIN, OUTPUT);
-  pinMode(EXTR_LED_PIN, OUTPUT);
   digitalWrite(MOTE_LED_PIN, LOW);
-  digitalWrite(EXTR_LED_PIN, LOW);  
 }
 
 void setupRadio() {
@@ -104,7 +98,7 @@ void loop() {
   sensors->report(sensorData);
   sendToRF((sensorData->waterLeak) ? MSG_ALERT : MSG_READING, 0);
   
-  blink(MOTE_LED_PIN, EXTR_LED_PIN, sensorData);
+  blink(MOTE_LED_PIN, sensorData);
   
   sleep(sensorData);
 }
@@ -120,12 +114,10 @@ void sleep(SensorData* sensorData) {
   detachInterrupt(1);
 }
 
-void blink(const int pin1, const int pin2, SensorData* sensorData) {
-  digitalWrite(pin1, HIGH);
-  digitalWrite(pin2, HIGH);
+void blink(const int pin, SensorData* sensorData) {
+  digitalWrite(pin, HIGH);
   delay((sensorData->waterLeak) ? 500 : 100);
-  digitalWrite(pin1, LOW);
-  digitalWrite(pin2, LOW);
+  digitalWrite(pin, LOW);
 }
 
 // Generates a sensor report, sending it to the RF gateway
