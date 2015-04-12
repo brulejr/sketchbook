@@ -10,6 +10,7 @@
 #include "Reading.h"
 
 typedef struct SensorData {
+  byte temperature;  // temperature sensor: C * 10
   byte waterLeak;   // 0 or 1
 };
 
@@ -18,8 +19,10 @@ class Sensors {
     Sensors();
     void measure();
     void report(SensorData* sensorData);
+    static int readTemperature(byte pin);
     static int readWaterLeak(byte pin);
   private:
+    Reading* _temperature;
     Reading* _waterLeak;
 };
 

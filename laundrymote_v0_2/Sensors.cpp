@@ -8,6 +8,8 @@
 
 #define DEBUG               1
 
+#define TEMPERATURE_PIN     A2
+#define TEMPERATURE_PERIOD  500
 #define WATER_LEAK_PIN      3
 #define WATER_LEAK_PERIOD   500
 
@@ -21,6 +23,7 @@ Sensors::Sensors() {
   
   pinMode(WATER_LEAK_PIN, INPUT);
   
+  _temperature = new Reading(TEMPERATURE_PIN, Sensors::readTemperature, TEMPERATURE_PERIOD);
   _waterLeak = new Reading(WATER_LEAK_PIN, Sensors::readWaterLeak, WATER_LEAK_PERIOD);
   
   #if DEBUG
@@ -30,18 +33,29 @@ Sensors::Sensors() {
 
 //-----------------------------------------------------------------------------
 void Sensors::measure() {
+  _temperature->measure();
   _waterLeak->measure();
 }
 
 //-----------------------------------------------------------------------------
 void Sensors::report(SensorData* sensorData) {
+  sensorData->temperature = _temperature->reading();
   sensorData->waterLeak = _waterLeak->reading();
   #if DEBUG
-    Serial.print("Sensors<waterLeak = ");
+    Serial.print("Sensors<temperature = ");
+    Serial.print(sensorData->temperature);
+    Serial.print(", waterLeak = ");    
     Serial.print(sensorData->waterLeak);
     Serial.println(">");
     Serial.flush();
   #endif
+}
+
+//-----------------------------------------------------------------------------
+int Sensors::readTemperature(byte pin) {
+  int tempRaw = analogRead(pin);
+  float tempVolts = (((float)tempRaw / 1024) * VOLTAGE);
+  return int((tempVolts - 0.5) / 0.01);
 }
 
 //-----------------------------------------------------------------------------
