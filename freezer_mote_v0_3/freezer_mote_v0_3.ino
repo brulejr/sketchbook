@@ -14,6 +14,7 @@
  
    Created 13-APR-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
+#include <EEPROM.h>
 #include <LowPower.h>
 #include <Message.h>
 #include <RFM69.h>
@@ -22,6 +23,7 @@
 #include "Sensors.h"
 
 #define VERSION    "v0.3"
+#define INIT       0
 
 #define SERIAL     1
 #define DEBUG      1
@@ -41,6 +43,12 @@ SensorData* sensorData;
 RFM69 radio;
 Message inbound, outbound;
 
+struct {
+  byte nodeId;
+  byte networkId;
+  byte gatewayId;
+} config;
+
 
 //-----------------------------------------------------------------------------
 // Initialization
@@ -54,6 +62,8 @@ void setup() {
     Serial.println("]");
     delay(100);
   #endif
+  
+  loadSettings();
   
   setupPorts();
   setupLeds();
@@ -80,7 +90,7 @@ void setupRadio() {
     Serial.print("setup radio...");
   #endif
   
-  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.initialize(FREQUENCY, config.nodeId, config.networkId);
   radio.setHighPower();
   delay(1000);
   
@@ -95,6 +105,20 @@ void setupSensors() {
   memset(sensorData, 0, sizeof(*sensorData));
 }
 
+void loadSettings() {
+  if (INIT) {
+    storeSettings();
+  }  
+  config.nodeId = EEPROM.read(0);
+  config.networkId = EEPROM.read(1);
+  config.gatewayId = EEPROM.read(2);
+}
+
+void storeSettings() {
+  EEPROM.write(0, NODEID);
+  EEPROM.write(1, NETWORKID);
+  EEPROM.write(2, GATEWAYID);
+}
 
 //-----------------------------------------------------------------------------
 // Main Loop
@@ -142,7 +166,7 @@ void sendToRF(byte type, byte component) {
   #if DEBUG
     Serial.print("Broadcasting report to gateway...");
   #endif
-  if (radio.sendWithRetry(GATEWAYID, outbound.raw, MSG_LENGTH)) {
+  if (radio.sendWithRetry(config.gatewayId, outbound.raw, MSG_LENGTH)) {
     #if DEBUG
       Serial.println("ACK");
     #endif
