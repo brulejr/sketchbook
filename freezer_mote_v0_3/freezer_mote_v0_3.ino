@@ -5,12 +5,14 @@
  
    Circuit:
    * Moteino R4 w/ RFM69HW RF module
-   * A1 - Light detector
-   * A2 - Temperature (inside)
-   * A3 - Temperature (outside)
-   * D3 - Door detector
+   * A1  - Light detector
+   * A2  - Temperature (inside)
+   * A3  - Temperature (outside)
+   * D3  - Door detector
+   * D7  - External heartbeat LED
+   * D9  - Internal heartbeat LED
  
-   Created 12-APR-2015 by Jon Brule
+   Created 13-APR-2015 by Jon Brule
 ----------------------------------------------------------------------------- */
 #include <LowPower.h>
 #include <Message.h>
@@ -30,6 +32,7 @@
 #define NETWORKID      99  // same for all nodes that talk to each other
 #define FREQUENCY      RF69_915MHZ
 
+const int EXTR_LED_PIN = 7;
 const int MOTE_LED_PIN = 9;
 
 Sensors* sensors;
@@ -67,7 +70,9 @@ void setupPorts() {
 
 void setupLeds() {
   pinMode(MOTE_LED_PIN, OUTPUT);
+  pinMode(EXTR_LED_PIN, OUTPUT);
   digitalWrite(MOTE_LED_PIN, LOW);
+  digitalWrite(EXTR_LED_PIN, LOW);
 }
 
 void setupRadio() {
@@ -100,7 +105,7 @@ void loop() {
   sensors->report(sensorData);
   sendToRF((sensorData->door) ? MSG_ALERT : MSG_READING, 0);
   
-  blink(MOTE_LED_PIN, sensorData);
+  blink(MOTE_LED_PIN, EXTR_LED_PIN, sensorData);
   
   sleep(sensorData);
 }
@@ -110,20 +115,16 @@ void loop() {
 // Support routines
 //-----------------------------------------------------------------------------
 
-void blink(const int pin, SensorData* sensorData) {
-  digitalWrite(pin, HIGH);
+void blink(const int pin1, const int pin2, SensorData* sensorData) {
+  digitalWrite(pin1, HIGH);
+  digitalWrite(pin2, HIGH);
   delay((sensorData->door) ? 500 : 100);
-  digitalWrite(pin, LOW);
-}
-
-void doorChange() {
-  #if DEBUG
-    Serial.println("DOOR Change");
-  #endif
+  digitalWrite(pin1, LOW);
+  digitalWrite(pin2, LOW);
 }
 
 void sleep(SensorData* sensorData) {
-  attachInterrupt(1, doorChange, CHANGE);
+  attachInterrupt(1, wakeup, CHANGE);
   period_t period = (sensorData->door) ? SLEEP_1S : SLEEP_8S;
   LowPower.powerDown(period, ADC_OFF, BOD_OFF);
   detachInterrupt(1);
@@ -152,3 +153,8 @@ void sendToRF(byte type, byte component) {
   }
 }
 
+void wakeup() {
+  #if DEBUG
+    Serial.println("DOOR Change");
+  #endif
+}
