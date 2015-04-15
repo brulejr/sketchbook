@@ -20,6 +20,7 @@
 #include <RFM69.h>
 #include <Reading.h>
 #include <SPI.h>
+#include "Config.h"
 #include "Sensors.h"
 
 #define VERSION    "v0.3"
@@ -34,6 +35,8 @@
 #define NETWORKID      99  // same for all nodes that talk to each other
 #define FREQUENCY      RF69_915MHZ
 
+#define LOOP_MULTIPLIER  2
+
 const int EXTR_LED_PIN = 7;
 const int MOTE_LED_PIN = 9;
 
@@ -43,11 +46,7 @@ SensorData* sensorData;
 RFM69 radio;
 Message inbound, outbound;
 
-struct {
-  byte nodeId;
-  byte networkId;
-  byte gatewayId;
-} config;
+Config* config;
 
 
 //-----------------------------------------------------------------------------
@@ -63,7 +62,7 @@ void setup() {
     delay(100);
   #endif
   
-  loadSettings();
+  config = new Config(false);
   
   setupPorts();
   setupLeds();
@@ -90,7 +89,7 @@ void setupRadio() {
     Serial.print("setup radio...");
   #endif
   
-  radio.initialize(FREQUENCY, config.nodeId, config.networkId);
+  radio.initialize(FREQUENCY, config->data.nodeId, config->data.networkId);
   radio.setHighPower();
   delay(1000);
   
@@ -105,20 +104,6 @@ void setupSensors() {
   memset(sensorData, 0, sizeof(*sensorData));
 }
 
-void loadSettings() {
-  if (INIT) {
-    storeSettings();
-  }  
-  config.nodeId = EEPROM.read(0);
-  config.networkId = EEPROM.read(1);
-  config.gatewayId = EEPROM.read(2);
-}
-
-void storeSettings() {
-  EEPROM.write(0, NODEID);
-  EEPROM.write(1, NETWORKID);
-  EEPROM.write(2, GATEWAYID);
-}
 
 //-----------------------------------------------------------------------------
 // Main Loop
@@ -166,7 +151,7 @@ void sendToRF(byte type, byte component) {
   #if DEBUG
     Serial.print("Broadcasting report to gateway...");
   #endif
-  if (radio.sendWithRetry(config.gatewayId, outbound.raw, MSG_LENGTH)) {
+  if (radio.sendWithRetry(config->data.gatewayId, outbound.raw, MSG_LENGTH)) {
     #if DEBUG
       Serial.println("ACK");
     #endif
