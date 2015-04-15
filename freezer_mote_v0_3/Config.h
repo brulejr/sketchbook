@@ -8,12 +8,15 @@
 
 #include "Arduino.h"
 #include <EEPROM.h>
+#include <RFM69.h>
 
 typedef struct ConfigData {
   byte nodeId;
   byte networkId;
   byte gatewayId;
+  byte frequency;
   byte loopMultiplier;
+  byte alertMultiplier;
 };
 
 class Config {

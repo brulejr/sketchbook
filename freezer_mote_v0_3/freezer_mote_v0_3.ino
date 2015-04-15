@@ -30,13 +30,6 @@
 #define DEBUG      1
 #define BAUD_RATE  9600
 
-#define NODEID         9   // unique for each node on same network
-#define GATEWAYID      1
-#define NETWORKID      99  // same for all nodes that talk to each other
-#define FREQUENCY      RF69_915MHZ
-
-#define LOOP_MULTIPLIER  2
-
 const int EXTR_LED_PIN = 7;
 const int MOTE_LED_PIN = 9;
 
@@ -91,7 +84,9 @@ void setupRadio() {
     Serial.print("setup radio...");
   #endif
   
-  radio.initialize(FREQUENCY, config->data.nodeId, config->data.networkId);
+  radio.initialize(config->data.frequency, 
+                   config->data.nodeId, 
+                   config->data.networkId);
   radio.setHighPower();
   delay(1000);
   
@@ -136,9 +131,11 @@ void blink(const int pin1, const int pin2, SensorData* sensorData) {
 
 void sleep(SensorData* sensorData) {
   attachInterrupt(1, wakeup, CHANGE);
-  period_t period = (sensorData->door) ? SLEEP_1S : SLEEP_8S;
-  for (int i = 0; i < config->data.loopMultiplier; i++) {
-    LowPower.powerDown(period, ADC_OFF, BOD_OFF);
+  byte multiplier = (sensorData->door) 
+                    ? config->data.alertMultiplier 
+                    : config->data.loopMultiplier;
+  for (int i = 0; i < multiplier; i++) {
+    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
     if (intr1) break;
   }
   detachInterrupt(1);
@@ -148,7 +145,7 @@ void sleep(SensorData* sensorData) {
 void sendToRF(byte type, byte component) {
   memset(&outbound, 0, sizeof(outbound));
   outbound.msg.type = type;
-  outbound.msg.source = NODEID;
+  outbound.msg.source = config->data.nodeId;
   outbound.msg.destination = 0;
   outbound.msg.component = component;
   outbound.msg.rssi = 0;
