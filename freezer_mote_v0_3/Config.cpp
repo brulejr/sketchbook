@@ -12,6 +12,8 @@
 #define NETWORKID        99  // same for all nodes that talk to each other
 #define FREQUENCY        RF69_915MHZ
 
+#define LOOP_MULTIPLIER  2
+
 
 //-----------------------------------------------------------------------------
 Config::Config(bool init) {
@@ -29,6 +31,7 @@ void Config::load() {
   data.nodeId = EEPROM.read(0);
   data.networkId = EEPROM.read(1);
   data.gatewayId = EEPROM.read(2);
+  data.loopMultiplier = EEPROM.read(3);
   #if DEBUG
     Serial.println("ok!");
   #endif
@@ -42,6 +45,7 @@ void Config::store() {
   EEPROM.write(0, NODEID);
   EEPROM.write(1, NETWORKID);
   EEPROM.write(2, GATEWAYID);
+  EEPROM.write(3, LOOP_MULTIPLIER);
   #if DEBUG
     Serial.println("ok!");
   #endif

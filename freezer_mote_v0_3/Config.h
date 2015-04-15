@@ -13,6 +13,7 @@ typedef struct ConfigData {
   byte nodeId;
   byte networkId;
   byte gatewayId;
+  byte loopMultiplier;
 };
 
 class Config {

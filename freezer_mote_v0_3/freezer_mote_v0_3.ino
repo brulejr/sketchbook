@@ -48,6 +48,8 @@ Message inbound, outbound;
 
 Config* config;
 
+volatile int intr1 = false;
+
 
 //-----------------------------------------------------------------------------
 // Initialization
@@ -135,8 +137,12 @@ void blink(const int pin1, const int pin2, SensorData* sensorData) {
 void sleep(SensorData* sensorData) {
   attachInterrupt(1, wakeup, CHANGE);
   period_t period = (sensorData->door) ? SLEEP_1S : SLEEP_8S;
-  LowPower.powerDown(period, ADC_OFF, BOD_OFF);
+  for (int i = 0; i < config->data.loopMultiplier; i++) {
+    LowPower.powerDown(period, ADC_OFF, BOD_OFF);
+    if (intr1) break;
+  }
   detachInterrupt(1);
+  intr1 = false;
 }
 
 void sendToRF(byte type, byte component) {
@@ -166,4 +172,5 @@ void wakeup() {
   #if DEBUG
     Serial.println("DOOR Change");
   #endif
+  intr1 = true;
 }
