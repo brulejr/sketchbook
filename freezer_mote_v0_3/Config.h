@@ -10,21 +10,19 @@
 #include <EEPROM.h>
 #include <RFM69.h>
 
-typedef struct ConfigData {
-  byte nodeId;
-  byte networkId;
-  byte gatewayId;
-  byte frequency;
-  byte loopMultiplier;
-  byte alertMultiplier;
-};
-
 class Config {
   public:
     Config(bool init);
-    void load();
-    void store();
-    ConfigData data; 
+    void loadConfig();
+    void storeConfig();
+    byte rfNodeId;
+    byte rfNetworkId;
+    byte rfGatewayId;
+    byte rfFrequency;
+    byte loopMultiplier;
+    byte alertMultiplier;
+  protected:
+    void initConfig();
 };
 
 #endif

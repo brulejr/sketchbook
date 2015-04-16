@@ -84,9 +84,9 @@ void setupRadio() {
     Serial.print("setup radio...");
   #endif
   
-  radio.initialize(config->data.frequency, 
-                   config->data.nodeId, 
-                   config->data.networkId);
+  radio.initialize(config->rfFrequency, 
+                   config->rfNodeId, 
+                   config->rfNetworkId);
   radio.setHighPower();
   delay(1000);
   
@@ -132,8 +132,8 @@ void blink(const int pin1, const int pin2, SensorData* sensorData) {
 void sleep(SensorData* sensorData) {
   attachInterrupt(1, wakeup, CHANGE);
   byte multiplier = (sensorData->door) 
-                    ? config->data.alertMultiplier 
-                    : config->data.loopMultiplier;
+                    ? config->alertMultiplier 
+                    : config->loopMultiplier;
   for (int i = 0; i < multiplier; i++) {
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
     if (intr1) break;
@@ -145,7 +145,7 @@ void sleep(SensorData* sensorData) {
 void sendToRF(byte type, byte component) {
   memset(&outbound, 0, sizeof(outbound));
   outbound.msg.type = type;
-  outbound.msg.source = config->data.nodeId;
+  outbound.msg.source = config->rfNodeId;
   outbound.msg.destination = 0;
   outbound.msg.component = component;
   outbound.msg.rssi = 0;
@@ -154,7 +154,7 @@ void sendToRF(byte type, byte component) {
   #if DEBUG
     Serial.print("Broadcasting report to gateway...");
   #endif
-  if (radio.sendWithRetry(config->data.gatewayId, outbound.raw, MSG_LENGTH)) {
+  if (radio.sendWithRetry(config->rfGatewayId, outbound.raw, MSG_LENGTH)) {
     #if DEBUG
       Serial.println("ACK");
     #endif

@@ -19,38 +19,49 @@
 //-----------------------------------------------------------------------------
 Config::Config(bool init) {
   if (init) {
-    store();
+    initConfig();
+    storeConfig();
   } 
-  load();
+  loadConfig();
 }
 
 //-----------------------------------------------------------------------------
-void Config::load() {
+void Config::initConfig() {
+  rfNodeId = NODEID;
+  rfNetworkId = NETWORKID;
+  rfGatewayId = GATEWAYID;
+  rfFrequency = FREQUENCY;
+  loopMultiplier = LOOP_MULTIPLIER;
+  alertMultiplier = ALTER_MULTIPLIER;
+}
+
+//-----------------------------------------------------------------------------
+void Config::loadConfig() {
   #if DEBUG
     Serial.print("loading configuration from eeprom...");
   #endif
-  data.nodeId = EEPROM.read(0);
-  data.networkId = EEPROM.read(1);
-  data.gatewayId = EEPROM.read(2);
-  data.frequency = EEPROM.read(3);
-  data.loopMultiplier = EEPROM.read(4);
-  data.alertMultiplier = EEPROM.read(5);
+  rfNodeId = EEPROM.read(0);
+  rfNetworkId = EEPROM.read(1);
+  rfGatewayId = EEPROM.read(2);
+  rfFrequency = EEPROM.read(3);
+  loopMultiplier = EEPROM.read(4);
+  alertMultiplier = EEPROM.read(5);
   #if DEBUG
     Serial.println("ok!");
   #endif
 }
 
 //-----------------------------------------------------------------------------
-void Config::store() {
+void Config::storeConfig() {
   #if DEBUG
-    Serial.print("loading configuration from eeprom...");
+    Serial.print("storing configuration to eeprom...");
   #endif
-  EEPROM.write(0, NODEID);
-  EEPROM.write(1, NETWORKID);
-  EEPROM.write(2, GATEWAYID);
-  EEPROM.write(3, FREQUENCY);
-  EEPROM.write(4, LOOP_MULTIPLIER);
-  EEPROM.write(5, ALTER_MULTIPLIER);
+  EEPROM.write(0, rfNodeId);
+  EEPROM.write(1, rfNetworkId);
+  EEPROM.write(2, rfGatewayId);
+  EEPROM.write(3, rfFrequency);
+  EEPROM.write(4, loopMultiplier);
+  EEPROM.write(5, alertMultiplier);
   #if DEBUG
     Serial.println("ok!");
   #endif
