@@ -1,0 +1,36 @@
+/* -----------------------------------------------------------------------------
+   Freezer Mote Sensor
+  
+   Monitors a freezer.
+ 
+   Circuit:
+   * Moteino R4 w/ RFM69HW RF module
+   * A1  - Light detector
+   * A2  - Temperature (inside)
+   * A3  - Temperature (outside)
+   * D3  - Door detector
+   * D7  - External heartbeat LED
+   * D9  - Internal heartbeat LED
+ 
+   Created 13-APR-2015 by Jon Brule
+----------------------------------------------------------------------------- */
+
+#include "FreezerMote.h"
+#include <EEPROM.h>
+#include <LowPower.h>
+#include <Message.h>
+#include <RFM69.h>
+#include <SPI.h>
+
+#define MOTE       "sample-mote"
+#define VERSION    "v0.1"
+
+FreezerMote mote(MOTE, VERSION, false);
+
+void setup() {
+  mote.setup();
+}
+
+void loop() {
+  mote.loop();
+}
