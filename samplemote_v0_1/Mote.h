@@ -33,18 +33,25 @@ class Mote  {
     
     Message _outbound;
     RFM69 _radio;
+    byte _alertMultiplier = 2;
+    byte _loopMultiplier = 10;
     byte _rfNodeId     = 9;
     byte _rfNetworkId  = 99;
     byte _rfGatewayId  = 1;
     byte _rfFrequency  = RF69_915MHZ;
-    byte _statusLedPin = 9;
+    byte _statusLedPin1 = 9;
+    byte _statusLedPin2 = 7;
+    boolean _alert = false;
 };
 
-#define ADDR_STATUS_LED_PIN   0
-#define ADDR_RF_NODE_ID       1
-#define ADDR_RF_NETWORK_ID    2
-#define ADDR_RF_GATEWAY_ID    3
-#define ADDR_RF_FREQUENCY     4
+#define ADDR_STATUS_LED_1_PIN  0
+#define ADDR_STATUS_LED_2_PIN  1
+#define ADDR_RF_NODE_ID        1
+#define ADDR_RF_NETWORK_ID     2
+#define ADDR_RF_GATEWAY_ID     3
+#define ADDR_RF_FREQUENCY      4
+#define ADDR_ALERT_MULTIPLIER  5
+#define ADDR_LOOP_MULTIPLIER   6
 
 Mote::Mote(const char* name, const char* version, bool init) {
   if (init) {
@@ -67,15 +74,19 @@ void Mote::loop() {
 }
 
 void Mote::loadConfig() {
-  _statusLedPin = EEPROM.read(ADDR_STATUS_LED_PIN);
+  _statusLedPin1 = EEPROM.read(ADDR_STATUS_LED_1_PIN);
+  _statusLedPin2 = EEPROM.read(ADDR_STATUS_LED_2_PIN);
   _rfNodeId = EEPROM.read(ADDR_RF_NODE_ID);
   _rfNetworkId = EEPROM.read(ADDR_RF_NETWORK_ID);
   _rfGatewayId = EEPROM.read(ADDR_RF_GATEWAY_ID);
   _rfFrequency = EEPROM.read(ADDR_RF_FREQUENCY);
+  _alertMultiplier = EEPROM.read(ADDR_ALERT_MULTIPLIER);
+  _loopMultiplier = EEPROM.read(ADDR_LOOP_MULTIPLIER);
 }
 
 void Mote::report() {
-  digitalWrite(_statusLedPin, HIGH);
+  digitalWrite(_statusLedPin1, HIGH);
+  digitalWrite(_statusLedPin2, HIGH);
   
   memset(&_outbound, 0, sizeof(_outbound));
   _outbound.msg.type = MSG_READING;
@@ -85,41 +96,61 @@ void Mote::report() {
   _outbound.msg.rssi = 0;
   memcpy(&_outbound.msg.data, sensorData(), MSG_DATA_LENGTH);
   
-  _radio.sendWithRetry(_rfGatewayId, _outbound.raw, MSG_LENGTH);
+  Serial.print("Broadcasting report to gateway...");
+  if (_radio.sendWithRetry(_rfGatewayId, _outbound.raw, MSG_LENGTH)) {
+    Serial.println("ACK");
+  } else {
+    Serial.println("No ACK!");
+  }
   
   delay(100);
   
-  digitalWrite(_statusLedPin, LOW);
+  digitalWrite(_statusLedPin1, LOW);
+  digitalWrite(_statusLedPin2, LOW);
 }
 
 void Mote::setupPorts() {
-  DDRD &= B00000011;   // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
-  DDRB = B00000000;    // set pins 8 to 13 as inputs
-  PORTD |= B11111100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
-  PORTB |= B11111111;  // enable pullups on pins 8 to 13
+  Serial.print("setup ports...");
+  DDRD  = B10000011;  // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
+  DDRB  = B00000000;  // set pins 8 to 13 as inputs
+  PORTD = B01110100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
+  PORTB = B11111111;  // enable pullups on pins 8 to 13
+  Serial.println("ok!");
 }
 
 void Mote::setupRadio() {
+  Serial.print("setup radio...");
   _radio.initialize(_rfFrequency, _rfNodeId, _rfNetworkId);
   _radio.setHighPower();
-  delay(1000);  
+  delay(1000);
+  Serial.println("ok!");
 }
 
 void Mote::setupStatusIndicator() {
-  pinMode(_statusLedPin, OUTPUT);
-  digitalWrite(_statusLedPin, LOW);
+  Serial.print("setup status indicators...");
+  pinMode(_statusLedPin1, OUTPUT);
+  pinMode(_statusLedPin2, OUTPUT);
+  digitalWrite(_statusLedPin1, LOW);
+  digitalWrite(_statusLedPin2, LOW);
+  Serial.println("ok!");
 }
 
 void Mote::sleep() {
-  LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+  byte multiplier = (_alert) ? _alertMultiplier : _loopMultiplier;
+  for (int i = 0; i < multiplier; i++) {
+    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+  }
 }
 
 void Mote::storeConfig() {
-  EEPROM.write(ADDR_STATUS_LED_PIN, _statusLedPin);
+  EEPROM.write(ADDR_STATUS_LED_1_PIN, _statusLedPin1);
+  EEPROM.write(ADDR_STATUS_LED_2_PIN, _statusLedPin2);
   EEPROM.write(ADDR_RF_NODE_ID, _rfNodeId);
   EEPROM.write(ADDR_RF_NETWORK_ID, _rfNetworkId);
   EEPROM.write(ADDR_RF_GATEWAY_ID, _rfGatewayId);
   EEPROM.write(ADDR_RF_FREQUENCY, _rfFrequency);
+  EEPROM.write(ADDR_ALERT_MULTIPLIER, _alertMultiplier);
+  EEPROM.write(ADDR_LOOP_MULTIPLIER, _loopMultiplier);
 }
 
 #endif

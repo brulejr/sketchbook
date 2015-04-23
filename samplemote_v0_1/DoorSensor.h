@@ -12,7 +12,8 @@
 class DoorSensor : public Sensor {
   public:
     inline DoorSensor(byte userPin) { 
-      _pin = userPin; 
+      _pin = userPin;
+      pinMode(_pin, INPUT);
     }
     virtual int read(); 
   private:

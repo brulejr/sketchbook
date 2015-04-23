@@ -5,6 +5,7 @@
  
    Circuit:
    * Moteino R4 w/ RFM69HW RF module
+   * A0  - Battery level detector
    * A1  - Light detector
    * A2  - Temperature (inside)
    * A3  - Temperature (outside)
@@ -24,10 +25,16 @@
 
 #define MOTE       "sample-mote"
 #define VERSION    "v0.1"
+#define BAUD_RATE  9600
 
-FreezerMote mote(MOTE, VERSION, false);
+FreezerMote mote(MOTE, VERSION, true);
 
 void setup() {
+  Serial.begin(BAUD_RATE);
+  Serial.print("\n[freezermote - ");
+  Serial.print(VERSION);
+  Serial.println("]");
+  delay(100);
   mote.setup();
 }
 

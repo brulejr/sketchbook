@@ -15,13 +15,11 @@
 #include "LightSensor.h"
 #include "TemperatureSensor.h"
 
-#define DEBUG                1
-
-#define BATTERY_PIN          0
+#define BATTERY_PIN          A0
 #define DOOR_PIN             3
-#define LIGHT_PIN            1
-#define TEMP_INSIDE_PIN      2
-#define TEMP_OUTSIDE_PIN     3
+#define LIGHT_PIN            A1
+#define TEMP_INSIDE_PIN      A2
+#define TEMP_OUTSIDE_PIN     A3
 
 #define VOLTAGE              3.3
 
@@ -78,20 +76,18 @@ void FreezerMote::measure() {
   _sensorData.light = _light->read();
   _sensorData.tempInside = _tempInside->read();
   _sensorData.tempOutside = _tempOutside->read();
-  #if DEBUG
-    Serial.print("Sensors<battery = ");
-    Serial.print(_sensorData.battery);
-    Serial.print(", tempInside = ");    
-    Serial.print(_sensorData.tempInside);
-    Serial.print(", tempOutside = ");    
-    Serial.print(_sensorData.tempOutside);
-    Serial.print(", light = ");    
-    Serial.print(_sensorData.light);
-    Serial.print(", door = ");    
-    Serial.print(_sensorData.door);
-    Serial.println(">");
-    Serial.flush();
-  #endif
+  Serial.print("Sensors<battery = ");
+  Serial.print(_sensorData.battery);
+  Serial.print(", tempInside = ");    
+  Serial.print(_sensorData.tempInside);
+  Serial.print(", tempOutside = ");    
+  Serial.print(_sensorData.tempOutside);
+  Serial.print(", light = ");    
+  Serial.print(_sensorData.light);
+  Serial.print(", door = ");    
+  Serial.print(_sensorData.door);
+  Serial.println(">");
+  Serial.flush();
 }
 
 byte* FreezerMote::sensorData() {
