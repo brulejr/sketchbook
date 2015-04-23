@@ -99,7 +99,7 @@ void Mote::loadConfig() {
 
 void Mote::report() {
   memset(&_outbound, 0, sizeof(_outbound));
-  _outbound.msg.type = MSG_READING;
+  _outbound.msg.type = (_alert) ? MSG_ALERT : MSG_READING;
   _outbound.msg.source = _rfNodeId;
   _outbound.msg.destination = 0;
   _outbound.msg.component = 0;
