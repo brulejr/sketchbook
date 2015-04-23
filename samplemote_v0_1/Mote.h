@@ -41,7 +41,9 @@ class Mote  {
     byte _rfFrequency  = RF69_915MHZ;
     byte _statusLedPin1 = 9;
     byte _statusLedPin2 = 7;
-    boolean _alert = false;
+    
+    static void wakeup();
+    static bool _alert;
 };
 
 #define ADDR_STATUS_LED_1_PIN  0
@@ -52,6 +54,8 @@ class Mote  {
 #define ADDR_RF_FREQUENCY      4
 #define ADDR_ALERT_MULTIPLIER  5
 #define ADDR_LOOP_MULTIPLIER   6
+
+bool Mote::_alert = false;
 
 Mote::Mote(const char* name, const char* version, bool init) {
   if (init) {
@@ -136,10 +140,13 @@ void Mote::setupStatusIndicator() {
 }
 
 void Mote::sleep() {
+  attachInterrupt(1, wakeup, CHANGE);
   byte multiplier = (_alert) ? _alertMultiplier : _loopMultiplier;
   for (int i = 0; i < multiplier; i++) {
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+    if (_alert) break;
   }
+  detachInterrupt(1);
 }
 
 void Mote::storeConfig() {
@@ -151,6 +158,10 @@ void Mote::storeConfig() {
   EEPROM.write(ADDR_RF_FREQUENCY, _rfFrequency);
   EEPROM.write(ADDR_ALERT_MULTIPLIER, _alertMultiplier);
   EEPROM.write(ADDR_LOOP_MULTIPLIER, _loopMultiplier);
+}
+
+void Mote::wakeup() {
+  _alert = true;
 }
 
 #endif

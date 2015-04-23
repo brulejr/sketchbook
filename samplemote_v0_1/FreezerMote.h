@@ -76,6 +76,7 @@ void FreezerMote::measure() {
   _sensorData.light = _light->read();
   _sensorData.tempInside = _tempInside->read();
   _sensorData.tempOutside = _tempOutside->read();
+  _alert = _sensorData.door;
   Serial.print("Sensors<battery = ");
   Serial.print(_sensorData.battery);
   Serial.print(", tempInside = ");    
