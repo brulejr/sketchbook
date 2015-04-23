@@ -21,6 +21,7 @@ class Mote  {
     virtual void measure() = 0;
     
   protected:
+    void blinkStatusLeds();
     inline virtual void initConfig() { /*nothing*/ };
     void loadConfig();
     void report();
@@ -48,12 +49,12 @@ class Mote  {
 
 #define ADDR_STATUS_LED_1_PIN  0
 #define ADDR_STATUS_LED_2_PIN  1
-#define ADDR_RF_NODE_ID        1
-#define ADDR_RF_NETWORK_ID     2
-#define ADDR_RF_GATEWAY_ID     3
-#define ADDR_RF_FREQUENCY      4
-#define ADDR_ALERT_MULTIPLIER  5
-#define ADDR_LOOP_MULTIPLIER   6
+#define ADDR_RF_NODE_ID        2
+#define ADDR_RF_NETWORK_ID     3
+#define ADDR_RF_GATEWAY_ID     4
+#define ADDR_RF_FREQUENCY      5
+#define ADDR_ALERT_MULTIPLIER  6
+#define ADDR_LOOP_MULTIPLIER   7
 
 bool Mote::_alert = false;
 
@@ -77,6 +78,14 @@ void Mote::loop() {
   sleep();
 }
 
+void Mote::blinkStatusLeds() {
+  digitalWrite(_statusLedPin1, HIGH);
+  digitalWrite(_statusLedPin2, HIGH);
+  delay((_alert) ? 500 : 100);  
+  digitalWrite(_statusLedPin1, LOW);
+  digitalWrite(_statusLedPin2, LOW);
+}
+
 void Mote::loadConfig() {
   _statusLedPin1 = EEPROM.read(ADDR_STATUS_LED_1_PIN);
   _statusLedPin2 = EEPROM.read(ADDR_STATUS_LED_2_PIN);
@@ -89,9 +98,6 @@ void Mote::loadConfig() {
 }
 
 void Mote::report() {
-  digitalWrite(_statusLedPin1, HIGH);
-  digitalWrite(_statusLedPin2, HIGH);
-  
   memset(&_outbound, 0, sizeof(_outbound));
   _outbound.msg.type = MSG_READING;
   _outbound.msg.source = _rfNodeId;
@@ -107,10 +113,7 @@ void Mote::report() {
     Serial.println("No ACK!");
   }
   
-  delay(100);
-  
-  digitalWrite(_statusLedPin1, LOW);
-  digitalWrite(_statusLedPin2, LOW);
+  blinkStatusLeds();
 }
 
 void Mote::setupPorts() {
