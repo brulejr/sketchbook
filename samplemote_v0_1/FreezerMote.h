@@ -44,6 +44,7 @@ class FreezerMote : public Mote {
   protected:
     virtual void initConfig();
     virtual byte* sensorData();
+    virtual void setupPorts();
   private:
     BatterySensor* _battery;
     DoorSensor* _door;
@@ -67,6 +68,15 @@ FreezerMote::~FreezerMote() {
 
 void FreezerMote::initConfig() {
   _rfNodeId = 9;
+}
+
+void FreezerMote::setupPorts() {
+  DDRD  = B10000011;  // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
+  DDRB  = B00000000;  // set pins 8 to 13 as inputs
+  DDRC  = B11110000;  // set pins A0 to A3 as inputs
+  PORTD = B01110100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
+  PORTB = B11111111;  // enable pullups on pins 8 to 13
+  PORTC = B11110000;  // enable pullups on pins 8 to 13
 }
 
 void FreezerMote::measure() {

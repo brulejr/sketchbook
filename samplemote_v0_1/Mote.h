@@ -26,7 +26,7 @@ class Mote  {
     void loadConfig();
     void report();
     inline virtual byte* sensorData() { return null; };
-    void setupPorts();
+    inline virtual void setupPorts() { /*nothing*/ };
     void setupRadio();
     void setupStatusIndicator();
     void sleep();
@@ -67,7 +67,9 @@ Mote::Mote(const char* name, const char* version, bool init) {
 }
 
 void Mote::setup() {
+  Serial.print("setup ports...");
   setupPorts();
+  Serial.println("ok!");
   setupStatusIndicator();
   setupRadio();
 }
@@ -114,15 +116,6 @@ void Mote::report() {
   }
   
   blinkStatusLeds();
-}
-
-void Mote::setupPorts() {
-  Serial.print("setup ports...");
-  DDRD  = B10000011;  // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
-  DDRB  = B00000000;  // set pins 8 to 13 as inputs
-  PORTD = B01110100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
-  PORTB = B11111111;  // enable pullups on pins 8 to 13
-  Serial.println("ok!");
 }
 
 void Mote::setupRadio() {
