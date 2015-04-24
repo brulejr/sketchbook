@@ -70,8 +70,14 @@ void Mote::setup() {
   Serial.print("setup ports...");
   setupPorts();
   Serial.println("ok!");
+  
+  Serial.print("setup status indicators...");
   setupStatusIndicator();
+  Serial.println("ok!");
+  
+  Serial.print("setup radio...");
   setupRadio();
+  Serial.println("ok!");
 }
 
 void Mote::loop() {
@@ -119,20 +125,16 @@ void Mote::report() {
 }
 
 void Mote::setupRadio() {
-  Serial.print("setup radio...");
   _radio.initialize(_rfFrequency, _rfNodeId, _rfNetworkId);
   _radio.setHighPower();
   delay(1000);
-  Serial.println("ok!");
 }
 
 void Mote::setupStatusIndicator() {
-  Serial.print("setup status indicators...");
   pinMode(_statusLedPin1, OUTPUT);
   pinMode(_statusLedPin2, OUTPUT);
   digitalWrite(_statusLedPin1, LOW);
   digitalWrite(_statusLedPin2, LOW);
-  Serial.println("ok!");
 }
 
 void Mote::sleep() {
