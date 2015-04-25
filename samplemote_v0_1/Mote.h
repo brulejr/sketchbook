@@ -22,6 +22,7 @@ class Mote  {
     
   protected:
     void blinkStatusLeds();
+    byte calculateMessageLevel();
     inline virtual void initConfig() { /*nothing*/ };
     void loadConfig();
     void report();
@@ -58,6 +59,10 @@ class Mote  {
 
 bool Mote::_alert = false;
 
+//-----------------------------------------------------------------------------
+// API Methods
+//-----------------------------------------------------------------------------
+
 Mote::Mote(const char* name, const char* version, bool init) {
   if (init) {
     initConfig();
@@ -86,12 +91,20 @@ void Mote::loop() {
   sleep();
 }
 
+//-----------------------------------------------------------------------------
+// Support Methods
+//-----------------------------------------------------------------------------
+
 void Mote::blinkStatusLeds() {
   digitalWrite(_statusLedPin1, HIGH);
   digitalWrite(_statusLedPin2, HIGH);
   delay((_alert) ? 500 : 100);  
   digitalWrite(_statusLedPin1, LOW);
   digitalWrite(_statusLedPin2, LOW);
+}
+
+byte Mote::calculateMessageLevel() {
+  return (_alert) ? MSG_ALERT : MSG_READING;
 }
 
 void Mote::loadConfig() {
@@ -107,7 +120,7 @@ void Mote::loadConfig() {
 
 void Mote::report() {
   memset(&_outbound, 0, sizeof(_outbound));
-  _outbound.msg.type = (_alert) ? MSG_ALERT : MSG_READING;
+  _outbound.msg.type = calculateMessageLevel();
   _outbound.msg.source = _rfNodeId;
   _outbound.msg.destination = 0;
   _outbound.msg.component = 0;
