@@ -22,7 +22,9 @@ class Mote  {
     
   protected:
     void blinkStatusLeds();
-    byte calculateMessageLevel();
+    virtual unsigned int calculateLedDelay() = 0;
+    virtual byte calculateMessageLevel() = 0;
+    virtual byte calculateSleepMultiplier() = 0;
     inline virtual void initConfig() { /*nothing*/ };
     void loadConfig();
     void report();
@@ -45,7 +47,8 @@ class Mote  {
     byte _statusLedPin2 = 7;
     
     static void wakeup();
-    static bool _alert;
+    static bool _intr;
+    static unsigned long _lastIntrTime;
 };
 
 #define ADDR_STATUS_LED_1_PIN  0
@@ -57,12 +60,13 @@ class Mote  {
 #define ADDR_ALERT_MULTIPLIER  6
 #define ADDR_LOOP_MULTIPLIER   7
 
-bool Mote::_alert = false;
+bool Mote::_intr = false;
+unsigned long Mote::_lastIntrTime = 0;
+
 
 //-----------------------------------------------------------------------------
 // API Methods
 //-----------------------------------------------------------------------------
-
 Mote::Mote(const char* name, const char* version, bool init) {
   if (init) {
     initConfig();
@@ -94,17 +98,12 @@ void Mote::loop() {
 //-----------------------------------------------------------------------------
 // Support Methods
 //-----------------------------------------------------------------------------
-
 void Mote::blinkStatusLeds() {
   digitalWrite(_statusLedPin1, HIGH);
   digitalWrite(_statusLedPin2, HIGH);
-  delay((_alert) ? 500 : 100);  
+  delay(calculateLedDelay());  
   digitalWrite(_statusLedPin1, LOW);
   digitalWrite(_statusLedPin2, LOW);
-}
-
-byte Mote::calculateMessageLevel() {
-  return (_alert) ? MSG_ALERT : MSG_READING;
 }
 
 void Mote::loadConfig() {
@@ -152,10 +151,13 @@ void Mote::setupStatusIndicator() {
 
 void Mote::sleep() {
   attachInterrupt(1, wakeup, CHANGE);
-  byte multiplier = (_alert) ? _alertMultiplier : _loopMultiplier;
+  byte multiplier = calculateSleepMultiplier();
   for (int i = 0; i < multiplier; i++) {
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
-    if (_alert) break;
+    if (_intr) {
+      _intr = false;
+      break;
+    }
   }
   detachInterrupt(1);
 }
@@ -172,7 +174,8 @@ void Mote::storeConfig() {
 }
 
 void Mote::wakeup() {
-  _alert = true;
+  _intr = true;
+  _lastIntrTime = millis();
 }
 
 #endif
