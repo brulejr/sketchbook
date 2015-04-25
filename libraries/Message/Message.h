@@ -19,6 +19,7 @@
 #define MSG_COMMAND    0x43
 #define MSG_INFO       0x49
 #define MSG_READING    0x52
+#define MSG_WARNING    0x62
 
 typedef struct {
     byte type;
