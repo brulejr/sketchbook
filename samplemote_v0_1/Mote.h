@@ -25,7 +25,6 @@ class Mote  {
     virtual unsigned int calculateLedDelay() = 0;
     virtual byte calculateMessageLevel() = 0;
     virtual byte calculateSleepMultiplier() = 0;
-    inline virtual MoteConfig* initConfig() { return null; };
     void loadConfig();
     void report();
     inline virtual byte* sensorData() { return null; };
@@ -104,7 +103,6 @@ void Mote::blinkStatusLeds() {
 }
 
 void Mote::loadConfig() {
-  _config = initConfig();
   if (_init) {
     storeConfig();
   } 

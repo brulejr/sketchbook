@@ -39,21 +39,17 @@ typedef struct SensorData {
 };
 
 typedef struct FreezerMoteConfig : MoteConfig {
-  FreezerMoteConfig() {
-     rfNodeId = 9;
-  }
 }; 
 
 class FreezerMote : public Mote {
   public:
-    FreezerMote(const char* name, const char* version, bool init);
+    FreezerMote(const char* name, const char* version, FreezerMoteConfig* config, bool init);
     ~FreezerMote();
     virtual void measure();
   protected:
     virtual unsigned int calculateLedDelay();
     virtual byte calculateMessageLevel();
     virtual byte calculateSleepMultiplier();
-    virtual MoteConfig* initConfig();
     virtual byte* sensorData();
     virtual void setupPorts();
   private:
@@ -70,7 +66,8 @@ class FreezerMote : public Mote {
 //-----------------------------------------------------------------------------
 // API Methods
 //-----------------------------------------------------------------------------
-FreezerMote::FreezerMote(const char* name, const char* version, bool init = false) : Mote(name, version, init) {
+FreezerMote::FreezerMote(const char* name, const char* version, FreezerMoteConfig* config, bool init = false) : Mote(name, version, init) {
+  _config = config;
   _battery = new BatterySensor(BATTERY_PIN);
   _door = new DoorSensor(DOOR_PIN);
   _light = new LightSensor(LIGHT_PIN);
@@ -109,10 +106,6 @@ byte FreezerMote::calculateSleepMultiplier() {
     return _config->loopMultiplier;
   }
 
-}
-
-MoteConfig* FreezerMote::initConfig() {
-  return new FreezerMoteConfig();
 }
 
 bool FreezerMote::isAlert() {

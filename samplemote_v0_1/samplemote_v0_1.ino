@@ -28,13 +28,18 @@
 
 #define BAUD_RATE  9600
 
-FreezerMote mote(MOTE, VERSION, true);
+FreezerMoteConfig config;
+FreezerMote* mote;
 
 void setup() {
   Serial.begin(BAUD_RATE);
-  mote.setup();
+  
+  config.rfNodeId = 9;
+  
+  mote = new FreezerMote(MOTE, VERSION, &config, true);
+  mote->setup();
 }
 
 void loop() {
-  mote.loop();
+  mote->loop();
 }
