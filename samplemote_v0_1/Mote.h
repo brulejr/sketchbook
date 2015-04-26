@@ -13,6 +13,19 @@
 #include <RFM69.h>
 #include <SPI.h>
 
+typedef struct MoteConfig {
+  byte rfNodeId = 2;
+  byte rfNetworkId= 99;
+  byte rfGatewayId = 1;
+  byte rfFrequency = RF69_915MHZ;
+  
+  byte intStatusLedPin = 9;
+  byte extStatusLedPin = 7;
+  
+  byte alertMultiplier = 2;
+  byte loopMultiplier = 10;
+};
+
 class Mote  {
   public:
     Mote(const char* name, const char* version, bool init);

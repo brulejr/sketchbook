@@ -7,7 +7,6 @@
 #define FreezerMote_h  
 
 #include "Arduino.h"
-#include "MoteConfig.h"
 #include "Mote.h"
 #include <Message.h>
 
