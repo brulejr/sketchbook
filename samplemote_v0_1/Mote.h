@@ -28,7 +28,7 @@ typedef struct MoteConfig {
 
 class Mote  {
   public:
-    Mote(const char* name, const char* version, bool init);
+    Mote(const char* name, const char* version, MoteConfig* config, bool init);
     void setup();
     void loop();  
     virtual void measure() = 0;
@@ -49,8 +49,8 @@ class Mote  {
     
     Message _outbound;
     RFM69 _radio;
-
-    MoteConfig* _config;    
+    
+    MoteConfig* _config;
     
     static void wakeup();
     static bool _intr;
@@ -59,6 +59,7 @@ class Mote  {
   private:
     const char* _name;
     const char* _version;
+        
     bool _init;
 };
 
@@ -69,9 +70,10 @@ unsigned long Mote::_lastIntrTime = 0;
 //-----------------------------------------------------------------------------
 // API Methods
 //-----------------------------------------------------------------------------
-Mote::Mote(const char* name, const char* version, bool init) {
+Mote::Mote(const char* name, const char* version, MoteConfig* config, bool init) {
   _name = name;
   _version = version;
+  _config = config;
   _init = init;
 }
 

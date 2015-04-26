@@ -65,8 +65,7 @@ class FreezerMote : public Mote {
 //-----------------------------------------------------------------------------
 // API Methods
 //-----------------------------------------------------------------------------
-FreezerMote::FreezerMote(const char* name, const char* version, FreezerMoteConfig* config, bool init = false) : Mote(name, version, init) {
-  _config = config;
+FreezerMote::FreezerMote(const char* name, const char* version, FreezerMoteConfig* config, bool init = false) : Mote(name, version, config, init) {
   _battery = new BatterySensor(BATTERY_PIN);
   _door = new DoorSensor(DOOR_PIN);
   _light = new LightSensor(LIGHT_PIN);
