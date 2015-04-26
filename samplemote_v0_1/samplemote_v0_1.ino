@@ -25,16 +25,13 @@
 
 #define MOTE       "sample-mote"
 #define VERSION    "v0.1"
+
 #define BAUD_RATE  9600
 
 FreezerMote mote(MOTE, VERSION, true);
 
 void setup() {
   Serial.begin(BAUD_RATE);
-  Serial.print("\n[freezermote - ");
-  Serial.print(VERSION);
-  Serial.println("]");
-  delay(100);
   mote.setup();
 }
 

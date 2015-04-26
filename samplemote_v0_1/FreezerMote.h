@@ -7,6 +7,7 @@
 #define FreezerMote_h  
 
 #include "Arduino.h"
+#include "MoteConfig.h"
 #include "Mote.h"
 #include <Message.h>
 
@@ -37,6 +38,12 @@ typedef struct SensorData {
   };
 };
 
+typedef struct FreezerMoteConfig : MoteConfig {
+  FreezerMoteConfig() {
+     rfNodeId = 9;
+  }
+}; 
+
 class FreezerMote : public Mote {
   public:
     FreezerMote(const char* name, const char* version, bool init);
@@ -46,7 +53,7 @@ class FreezerMote : public Mote {
     virtual unsigned int calculateLedDelay();
     virtual byte calculateMessageLevel();
     virtual byte calculateSleepMultiplier();
-    virtual void initConfig();
+    virtual MoteConfig* initConfig();
     virtual byte* sensorData();
     virtual void setupPorts();
   private:
@@ -57,7 +64,7 @@ class FreezerMote : public Mote {
     LightSensor* _light;
     TemperatureSensor* _tempInside;
     TemperatureSensor* _tempOutside;
-    SensorData _sensorData;    
+    SensorData _sensorData;
 };
 
 //-----------------------------------------------------------------------------
@@ -97,15 +104,15 @@ byte FreezerMote::calculateMessageLevel() {
 
 byte FreezerMote::calculateSleepMultiplier() {
   if (isNormal()) {
-    return isAlert() ? _alertMultiplier: _alertMultiplier * 2;
+    return isAlert() ? _config->alertMultiplier: _config->alertMultiplier * 2;
   } else {
-    return _loopMultiplier;
+    return _config->loopMultiplier;
   }
 
 }
 
-void FreezerMote::initConfig() {
-  _rfNodeId = 9;
+MoteConfig* FreezerMote::initConfig() {
+  return new FreezerMoteConfig();
 }
 
 bool FreezerMote::isAlert() {
@@ -144,10 +151,10 @@ byte* FreezerMote::sensorData() {
 void FreezerMote::setupPorts() {
   DDRD  = B10000011;  // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
   DDRB  = B00000000;  // set pins 8 to 13 as inputs
-  DDRC  = B11110000;  // set pins A0 to A3 as inputs
+  //DDRC  = B11110000;  // set pins A0 to A3 as inputs
   PORTD = B01110100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
   PORTB = B11111111;  // enable pullups on pins 8 to 13
-  PORTC = B11110000;  // enable pullups on pins 8 to 13
+  //PORTC = B11110000;  // enable pullups on pins 8 to 13
 }
 
 #endif
