@@ -172,6 +172,7 @@ void Mote::setupStatusIndicator() {
 
 void Mote::sleep() {
   attachInterrupt(1, wakeup, CHANGE);
+  _radio.sleep();
   byte multiplier = calculateSleepMultiplier();
   for (int i = 0; i < multiplier; i++) {
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
