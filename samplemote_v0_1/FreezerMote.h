@@ -67,7 +67,7 @@ class FreezerMote : public Mote {
 //-----------------------------------------------------------------------------
 FreezerMote::FreezerMote(const char* name, const char* version, FreezerMoteConfig* config, bool init = false) : Mote(name, version, config, init) {
   _battery = new BatterySensor(BATTERY_PIN);
-  _door = new DoorSensor(DOOR_PIN);
+  _door = new DoorSensor(DOOR_PIN, NC_SWITCH);
   _light = new LightSensor(LIGHT_PIN);
   _tempInside = new TemperatureSensor(TEMP_INSIDE_PIN, VOLTAGE);
   _tempOutside = new TemperatureSensor(TEMP_OUTSIDE_PIN, VOLTAGE);

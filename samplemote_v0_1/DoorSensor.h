@@ -9,19 +9,25 @@
 #include "Arduino.h"
 #include "Sensor.h"
 
+#define NC_SWITCH false
+#define NO_SWITCH true
+
 class DoorSensor : public Sensor {
   public:
-    inline DoorSensor(byte userPin) { 
+    inline DoorSensor(byte userPin, bool mode = NO_SWITCH) { 
       _pin = userPin;
+      _mode = mode;
       pinMode(_pin, INPUT);
     }
     virtual int read(); 
   private:
     byte _pin;
+    boolean _mode;
 };
 
 int DoorSensor::read() {
-  return digitalRead(_pin);
+  bool value = digitalRead(_pin);
+  return (_mode) ? value : !value;
 }
 
 #endif
