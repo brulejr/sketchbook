@@ -143,7 +143,9 @@ void Mote::report() {
   _outbound.msg.rssi = 0;
   memcpy(&_outbound.msg.data, sensorData(), MSG_DATA_LENGTH);
   
-  Serial.print("Broadcasting report from node<");
+  Serial.print("Report<");
+  Serial.print(_outbound.msg.type);
+  Serial.print("> from node<");
   Serial.print(_config->rfNodeId);
   Serial.print("> to gateway<");
   Serial.print(_config->rfGatewayId);
@@ -172,6 +174,7 @@ void Mote::setupStatusIndicator() {
 
 void Mote::sleep() {
   attachInterrupt(1, wakeup, CHANGE);
+  Serial.flush();
   _radio.sleep();
   byte multiplier = calculateSleepMultiplier();
   for (int i = 0; i < multiplier; i++) {
