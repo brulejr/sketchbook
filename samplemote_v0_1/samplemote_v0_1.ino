@@ -36,7 +36,7 @@ void setup() {
   
   config.rfNodeId = 9;
   
-  mote = new FreezerMote(MOTE, VERSION, &config, true);
+  mote = new FreezerMote(MOTE, VERSION, &config, false);
   mote->setup();
 }
 
