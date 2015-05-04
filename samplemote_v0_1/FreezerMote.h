@@ -48,7 +48,6 @@ class FreezerMote : public Mote {
   protected:
     virtual unsigned int calculateLedDelay();
     virtual byte calculateMessageLevel();
-    virtual byte calculateSleepMultiplier();
     virtual byte* sensorData();
     virtual void setupPorts();
   private:
@@ -67,7 +66,7 @@ class FreezerMote : public Mote {
 //-----------------------------------------------------------------------------
 FreezerMote::FreezerMote(const char* name, const char* version, FreezerMoteConfig* config, bool init = false) : Mote(name, version, config, init) {
   _battery = new BatterySensor(BATTERY_PIN);
-  _door = new DoorSensor(DOOR_PIN, NC_SWITCH);
+  _door = new DoorSensor(DOOR_PIN);
   _light = new LightSensor(LIGHT_PIN);
   _tempInside = new TemperatureSensor(TEMP_INSIDE_PIN, VOLTAGE);
   _tempOutside = new TemperatureSensor(TEMP_OUTSIDE_PIN, VOLTAGE);
@@ -95,15 +94,6 @@ byte FreezerMote::calculateMessageLevel() {
   } else {
     return MSG_READING;
   }
-}
-
-byte FreezerMote::calculateSleepMultiplier() {
-  if (isNormal()) {
-    return isAlert() ? _config->alertMultiplier: _config->alertMultiplier * 2;
-  } else {
-    return _config->loopMultiplier;
-  }
-
 }
 
 bool FreezerMote::isAlert() {
@@ -140,11 +130,11 @@ byte* FreezerMote::sensorData() {
 }
 
 void FreezerMote::setupPorts() {
-  DDRD  = B10000011;  // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
-  DDRB  = B00000000;  // set pins 8 to 13 as inputs
+  //DDRD  = B10000011;  // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
+  //DDRB  = B00000000;  // set pins 8 to 13 as inputs
   //DDRC  = B11110000;  // set pins A0 to A3 as inputs
-  PORTD = B01110100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
-  PORTB = B11111111;  // enable pullups on pins 8 to 13
+  //PORTD = B01110100;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
+  //PORTB = B11111111;  // enable pullups on pins 8 to 13
   //PORTC = B11110000;  // enable pullups on pins 8 to 13
 }
 

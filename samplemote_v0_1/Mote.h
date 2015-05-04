@@ -22,8 +22,8 @@ typedef struct MoteConfig {
   byte intStatusLedPin = 9;
   byte extStatusLedPin = 7;
   
-  byte alertMultiplier = 2;
-  byte loopMultiplier = 10;
+  byte loopMultiplier = 30;
+  byte waitPeriod = 2;
 };
 
 class Mote  {
@@ -37,10 +37,11 @@ class Mote  {
     void blinkStatusLeds();
     virtual unsigned int calculateLedDelay() = 0;
     virtual byte calculateMessageLevel() = 0;
-    virtual byte calculateSleepMultiplier() = 0;
+    period_t calculateWaitPeriod();
     void loadConfig();
     void report();
     inline virtual byte* sensorData() { return null; };
+    void setupISR();
     inline virtual void setupPorts() { /*nothing*/ };
     void setupRadio();
     void setupStatusIndicator();
@@ -53,8 +54,8 @@ class Mote  {
     MoteConfig* _config;
     
     static void wakeup();
-    static bool _intr;
-    static unsigned long _lastIntrTime;
+    static volatile bool _intr;
+    static volatile unsigned long _lastIntrTime;
     
   private:
     const char* _name;
@@ -63,8 +64,8 @@ class Mote  {
     bool _init;
 };
 
-bool Mote::_intr = false;
-unsigned long Mote::_lastIntrTime = 0;
+volatile bool Mote::_intr = false;
+volatile unsigned long Mote::_lastIntrTime = 0;
 
 
 //-----------------------------------------------------------------------------
@@ -98,11 +99,18 @@ void Mote::setup() {
   Serial.print("setup radio...");
   setupRadio();
   Serial.println("ok!");
+  
+  Serial.print("setup isr...");
+  setupISR();
+  Serial.println("ok!");
+  
 }
 
 void Mote::loop() {
+  noInterrupts();
   measure();
   report();
+  interrupts();
   sleep();
 }
 
@@ -115,6 +123,20 @@ void Mote::blinkStatusLeds() {
   delay(calculateLedDelay());  
   digitalWrite(_config->intStatusLedPin, LOW);
   digitalWrite(_config->extStatusLedPin, LOW);
+}
+
+period_t Mote::calculateWaitPeriod() {
+  if (_config->waitPeriod < 1) {
+    return SLEEP_500MS;
+  } else if (_config->waitPeriod >= 1 and _config->waitPeriod < 2) {
+    return SLEEP_1S;
+  } else if (_config->waitPeriod >= 2 and _config->waitPeriod < 4) {
+    return SLEEP_2S;
+  } else if (_config->waitPeriod >= 4 and _config->waitPeriod < 8) {
+    return SLEEP_4S;
+  } else {
+    return SLEEP_2S;
+  }
 }
 
 void Mote::loadConfig() {
@@ -159,6 +181,10 @@ void Mote::report() {
   blinkStatusLeds();
 }
 
+void Mote::setupISR() {
+  attachInterrupt(1, wakeup, RISING);
+}
+
 void Mote::setupRadio() {
   _radio.initialize(_config->rfFrequency, _config->rfNodeId, _config->rfNetworkId);
   _radio.setHighPower();
@@ -173,18 +199,15 @@ void Mote::setupStatusIndicator() {
 }
 
 void Mote::sleep() {
-  attachInterrupt(1, wakeup, CHANGE);
   Serial.flush();
   _radio.sleep();
-  byte multiplier = calculateSleepMultiplier();
-  for (int i = 0; i < multiplier; i++) {
-    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+  for (int i = 0; i < _config->loopMultiplier; i++) {
+    LowPower.powerDown(calculateWaitPeriod(), ADC_OFF, BOD_OFF);
     if (_intr) {
       _intr = false;
       break;
     }
   }
-  detachInterrupt(1);
 }
 
 void Mote::storeConfig() {
