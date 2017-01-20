@@ -12,16 +12,24 @@
 #define TMP36_PIN  A0
 #define temperature_topic "sensor/temperature"
 
+#define DOOR_PIN 5
+#define door_topic "sensor/door"
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 unsigned long previousMillis = 0;  // will store last temp was read
 const long interval = 10000;        // interval at which to read sensor
 
+bool oldDoorState;
+
 void setup() {
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
+
+  pinMode(DOOR_PIN, INPUT_PULLUP);
+  oldDoorState = !digitalRead(DOOR_PIN);
 }
 
 void setup_wifi() {
@@ -69,10 +77,19 @@ void loop() {
   }
   client.loop();
 
-  gettemperature();
+  getDoorState();
+  getTemperature();
 }
 
-void gettemperature() {
+void getDoorState() {
+  int doorState = digitalRead(DOOR_PIN);
+  if (doorState != oldDoorState) {
+    client.publish(door_topic, doorState ? "CLOSED" : "OPEN", true);
+    oldDoorState = doorState;
+  }
+}
+
+void getTemperature() {
   // Wait at least 2 seconds seconds between measurements.
   // if the difference between the current time and last time you read
   // the sensor is bigger than the interval you set, read the sensor
