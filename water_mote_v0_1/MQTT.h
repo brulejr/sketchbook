@@ -6,17 +6,22 @@
 #define MQTT_h
 
 #include "Arduino.h"
+#include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
 
 class MQTT
 {
   public:
-    MQTT(EthernetClient* ethClient, char* server);
+    MQTT(byte* macAddr, char* server);
     void check();
     void publish(char* topic, char* message);
+    void setup();
   private:
-    PubSubClient _pubSubClient;  
+    EthernetClient _ethClient;
+    PubSubClient _pubSubClient;
+    byte* _macAddr;
+    char* _server;
 };
 
 #endif

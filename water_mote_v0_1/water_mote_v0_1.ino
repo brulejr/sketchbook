@@ -12,37 +12,22 @@
    Created 21-JAN-2017 by Jon Brule
 ----------------------------------------------------------------------------- */
 
-#include <SPI.h>
-#include <Ethernet.h>
-#include <PubSubClient.h>
 #include "DHTSensor.h"
 #include "MQTT.h"
 
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
-byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A };
-EthernetClient ethClient;
-
+byte macAddr[] = { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A };
 char mqttServer[] = "mqtt.dev.brule.net";
-MQTT mqtt(&ethClient, mqttServer);
+MQTT mqtt(macAddr, mqttServer);
 
 #define DHTPIN  2
 DHTSensor dhts(DHTPIN);
 uint32_t delayMS;
 
-void setup_ethernet() {
-  delay(10);
-  Serial.print("Attempting to connect to network...");
-  if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP");
-  }  
-  delay(1000);
-  Serial.println(Ethernet.localIP());
-}
-
 void setup() {
   Serial.begin(115200);
-  setup_ethernet();
+  mqtt.setup();
   dhts.setup();
 }
 

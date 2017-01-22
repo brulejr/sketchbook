@@ -5,9 +5,11 @@
 #include "Arduino.h"
 #include "MQTT.h"
 
-MQTT::MQTT(EthernetClient* ethClient, char* server) {
-    _pubSubClient = PubSubClient(*ethClient);
-    _pubSubClient.setServer(server, 1883);
+MQTT::MQTT(byte* macAddr, char* server) {
+  _macAddr = macAddr;
+  _server = server;
+  _ethClient = EthernetClient();
+  _pubSubClient = PubSubClient(_ethClient);
 }
 
 //------------------------------------------------------------------------------
@@ -22,7 +24,6 @@ void MQTT::check() {
         Serial.println("connected");
         // Once connected, publish an announcement...
         publish("outTopic","hello world!!");
-//        _pubSubClient.publish("outTopic","hello world");
       } else {
         Serial.print("failed, rc=");
         Serial.print(_pubSubClient.state());
@@ -42,3 +43,19 @@ void MQTT::publish(char* topic, char* message) {
   _pubSubClient.publish(topic, message);
 }
 
+//------------------------------------------------------------------------------
+// checks connectivity
+//
+void MQTT::setup() {
+  // setup ethernet
+  delay(10);
+  Serial.print("Attempting to connect to network...");
+  if (Ethernet.begin(_macAddr) == 0) {
+    Serial.println("Failed to configure Ethernet using DHCP");
+  }  
+  delay(1000);
+  Serial.println(Ethernet.localIP());
+
+  // setup MQTT
+  _pubSubClient.setServer(_server, 1883);
+}
