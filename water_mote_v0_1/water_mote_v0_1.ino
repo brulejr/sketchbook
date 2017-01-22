@@ -6,8 +6,8 @@
    Circuit:
    * Arduino UNO
    * Ethernet shield attached to pins 10, 11, 12, 13
-   * Water sensor attached to digitial pin
-   * Temperature sensor attached to digital pin 3
+   * Water sensor attached to digitial pin x
+   * Temperature/Humidity (DHT11) sensor attached to digital pin 2
  
    Created 21-JAN-2017 by Jon Brule
 ----------------------------------------------------------------------------- */
@@ -32,11 +32,22 @@ void setup() {
 
 void loop() {
   mqtt.check();
+  readSensors();
+  delay(15000);
+}
+
+void readSensors() {
   float temperature = dhts.temperature();
   float humidity = dhts.humidity();
-  mqtt.publish("temperature", String(temperature).c_str());
-  mqtt.publish("humidity", String(humidity).c_str());
 
-  delay(15000);
+  String json = "{";
+  json += "\"temperature\": ";
+  json += temperature;
+  json += ", \"humidity\": ";
+  json += humidity;
+  json += "}";
+  Serial.print("Reading: "); Serial.println(json);
+
+  mqtt.publish("reading", json.c_str());
 }
 
