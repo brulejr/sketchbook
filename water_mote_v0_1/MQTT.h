@@ -13,15 +13,16 @@
 class MQTT
 {
   public:
-    MQTT(byte* macAddr, char* server);
+    MQTT(byte* macAddr, char* mqttServer, char* deviceName);
     void check();
     void publish(char* topic, char* message);
     void setup();
   private:
     EthernetClient _ethClient;
     PubSubClient _pubSubClient;
+    char* _deviceName;
     byte* _macAddr;
-    char* _server;
+    char* _mqttServer;
 };
 
 #endif

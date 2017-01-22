@@ -5,9 +5,10 @@
 #include "Arduino.h"
 #include "MQTT.h"
 
-MQTT::MQTT(byte* macAddr, char* server) {
+MQTT::MQTT(byte* macAddr, char* mqttServer, char* deviceName) {
   _macAddr = macAddr;
-  _server = server;
+  _mqttServer = mqttServer;
+  _deviceName = deviceName;
   _ethClient = EthernetClient();
   _pubSubClient = PubSubClient(_ethClient);
 }
@@ -23,7 +24,7 @@ void MQTT::check() {
       if (_pubSubClient.connect("arduinoClient")) {
         Serial.println("connected");
         // Once connected, publish an announcement...
-        publish("outTopic","hello world!!");
+        publish("status","CONNECTED");
       } else {
         Serial.print("failed, rc=");
         Serial.print(_pubSubClient.state());
@@ -40,7 +41,10 @@ void MQTT::check() {
 // checks connectivity
 //
 void MQTT::publish(char* topic, char* message) {
-  _pubSubClient.publish(topic, message);
+  String topicPath = _deviceName;
+  topicPath += "/";
+  topicPath += topic;
+  _pubSubClient.publish(topicPath.c_str(), message);
 }
 
 //------------------------------------------------------------------------------
@@ -57,5 +61,5 @@ void MQTT::setup() {
   Serial.println(Ethernet.localIP());
 
   // setup MQTT
-  _pubSubClient.setServer(_server, 1883);
+  _pubSubClient.setServer(_mqttServer, 1883);
 }

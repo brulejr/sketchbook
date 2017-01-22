@@ -15,11 +15,10 @@
 #include "DHTSensor.h"
 #include "MQTT.h"
 
-// Enter a MAC address for your controller below.
-// Newer Ethernet shields have a MAC address printed on a sticker on the shield
 byte macAddr[] = { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A };
 char mqttServer[] = "mqtt.dev.brule.net";
-MQTT mqtt(macAddr, mqttServer);
+char deviceName[] = "water_mote_01";
+MQTT mqtt(macAddr, mqttServer, "water_mote_01");
 
 #define DHTPIN  2
 DHTSensor dhts(DHTPIN);
@@ -33,14 +32,11 @@ void setup() {
 
 void loop() {
   mqtt.check();
+  float temperature = dhts.temperature();
+  float humidity = dhts.humidity();
+  mqtt.publish("temperature", String(temperature).c_str());
+  mqtt.publish("humidity", String(humidity).c_str());
 
-  delay(1000);
-  Serial.print("Temperature: ");
-  Serial.print(dhts.temperature());
-  Serial.println(" *C");
-
-  Serial.print("Humidity: ");
-  Serial.print(dhts.humidity());
-  Serial.println("%");
+  delay(15000);
 }
 
