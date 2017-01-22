@@ -1,6 +1,6 @@
 /*
   DHTSensor.h - Encapsulates temperature / humidity measurement.
-  Created by Jon R. Brule, January 22, 2017.
+  Created 22-JAN-2017 by Jon Brule
 */
 #ifndef DHTSensor_h
 #define DHTSensor_h

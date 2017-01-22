@@ -1,6 +1,6 @@
 /*
   DHTSensor.cpp - Encapsulates temperature / humidity measurement.
-  Created by Jon R. Brule, January 22, 2017.
+  Created 22-JAN-2017 by Jon Brule
 */
 #include "Arduino.h"
 #include "DHTSensor.h"

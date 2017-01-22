@@ -6,28 +6,37 @@
    Circuit:
    * Arduino UNO
    * Ethernet shield attached to pins 10, 11, 12, 13
-   * Water sensor attached to digitial pin x
-   * Temperature/Humidity (DHT11) sensor attached to digital pin 2
+   * Water sensor attached to digitial pin 2
+   * Temperature/Humidity (DHT11) sensor attached to digital pin 3
  
-   Created 21-JAN-2017 by Jon Brule
+   Created 22-JAN-2017 by Jon Brule
 ----------------------------------------------------------------------------- */
 
 #include "DHTSensor.h"
 #include "MQTT.h"
 
-byte macAddr[] = { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A };
-char mqttServer[] = "mqtt.dev.brule.net";
-char deviceName[] = "water_mote_01";
-MQTT mqtt(macAddr, mqttServer, "water_mote_01");
+#define DHT_PIN  3
+#define DOOR_PIN 2
+#define DEVICE_NAME "water_mote_01"
+#define MAC_ADDR { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A }
+#define MQTT_SERVER "mqtt.dev.brule.net"
 
-#define DHTPIN  2
-DHTSensor dhts(DHTPIN);
-uint32_t delayMS;
+byte macAddr[] = MAC_ADDR;
+MQTT mqtt(macAddr, MQTT_SERVER, DEVICE_NAME);
+
+DHTSensor dhts(DHT_PIN);
+int doorState = digitalRead(DOOR_PIN);
+
+boolean startup = true;
 
 void setup() {
   Serial.begin(115200);
   mqtt.setup();
   dhts.setup();
+  pinMode(DOOR_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(DOOR_PIN), doorOpen, CHANGE);
+  delay(1000);
+  startup = false;
 }
 
 void loop() {
@@ -45,9 +54,24 @@ void readSensors() {
   json += temperature;
   json += ", \"humidity\": ";
   json += humidity;
-  json += "}";
+  json += ", \"door\": \"";
+  json += (doorState == LOW ? "OPEN" : "CLOSED");
+  json += "\"}";
   Serial.print("Reading: "); Serial.println(json);
-
   mqtt.publish("reading", json.c_str());
+}
+
+void doorOpen() {
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  if (!startup && (interrupt_time - last_interrupt_time > 200)) {
+    doorState = digitalRead(DOOR_PIN);
+    String json = "{\"door\": \"";
+    json += (doorState == LOW ? "OPEN" : "CLOSED");
+    json += "\"}";
+    Serial.print("Alert: "); Serial.println(json);
+    mqtt.publish("alert", json.c_str());
+  }
+  last_interrupt_time = interrupt_time;
 }
 
