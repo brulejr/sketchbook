@@ -19,10 +19,12 @@
 #define DOOR_PIN 2
 #define DEVICE_NAME "water_mote_01"
 #define MAC_ADDR { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A }
-#define MQTT_SERVER "mqtt.dev.brule.net"
+#define MQTT_SERVER "mqtt.autohome.brule.net"
+#define MQTT_USERID "XXXXXX"
+#define MQTT_PASSWD "XXXXXX"
 
 byte macAddr[] = MAC_ADDR;
-MQTT mqtt(macAddr, MQTT_SERVER, DEVICE_NAME);
+MQTT mqtt(DEVICE_NAME, macAddr, MQTT_SERVER, MQTT_USERID, MQTT_PASSWD);
 
 DHTSensor dhts(DHT_PIN);
 int doorState = digitalRead(DOOR_PIN);

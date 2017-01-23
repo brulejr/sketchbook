@@ -13,7 +13,7 @@
 class MQTT
 {
   public:
-    MQTT(byte* macAddr, char* mqttServer, char* deviceName);
+    MQTT(char* deviceName, byte* macAddr, char* mqttServer, char* mqttUserid, char* mqttPasswd);
     void check();
     void publish(char* topic, char* message);
     void setup();
@@ -23,6 +23,8 @@ class MQTT
     char* _deviceName;
     byte* _macAddr;
     char* _mqttServer;
+    char* _mqttUserId;
+    char* _mqttPasswd;
 };
 
 #endif

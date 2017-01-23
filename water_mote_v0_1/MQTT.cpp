@@ -5,10 +5,12 @@
 #include "Arduino.h"
 #include "MQTT.h"
 
-MQTT::MQTT(byte* macAddr, char* mqttServer, char* deviceName) {
+MQTT::MQTT(char* deviceName, byte* macAddr, char* mqttServer, char* mqttUserid, char* mqttPasswd) {
+  _deviceName = deviceName;
   _macAddr = macAddr;
   _mqttServer = mqttServer;
-  _deviceName = deviceName;
+  _mqttUserId = mqttUserid;
+  _mqttPasswd = mqttPasswd;
   _ethClient = EthernetClient();
   _pubSubClient = PubSubClient(_ethClient);
 }
@@ -21,7 +23,7 @@ void MQTT::check() {
     while (!_pubSubClient.connected()) {
       Serial.print("Attempting MQTT connection...");
       // Attempt to connect
-      if (_pubSubClient.connect("arduinoClient")) {
+      if (_pubSubClient.connect(_deviceName, _mqttUserId, _mqttPasswd)) {
         Serial.println("connected");
         // Once connected, publish an announcement...
         publish("status","CONNECTED");
