@@ -6,8 +6,8 @@
 #include "DHTSensor.h"
 
 DHTSensor::DHTSensor(byte dataPin) {
-    _dataPin = dataPin;
-    _ready = false;
+  _dataPin = dataPin;
+  _ready = false;
 }
 
 //------------------------------------------------------------------------------

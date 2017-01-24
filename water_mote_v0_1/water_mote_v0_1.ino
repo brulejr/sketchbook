@@ -15,14 +15,15 @@
 
 #include "DHTSensor.h"
 #include "MQTT.h"
+#include "WaterSensor.h"
 
 #define DHT_PIN  3
 #define DOOR_PIN 2
 #define DEVICE_NAME "water_mote_01"
 #define MAC_ADDR { 0x90, 0xA2, 0xDA, 0x00, 0x4B, 0x2A }
 #define MQTT_SERVER "mqtt.autohome.brule.net"
-#define MQTT_USERID "pi"
-#define MQTT_PASSWD "J8n@ut0!7"
+#define MQTT_USERID "XXX"
+#define MQTT_PASSWD "XXX"
 #define WATER_PIN 8
 
 byte macAddr[] = MAC_ADDR;
@@ -31,7 +32,7 @@ MQTT mqtt(DEVICE_NAME, macAddr, MQTT_SERVER, MQTT_USERID, MQTT_PASSWD);
 DHTSensor dhts(DHT_PIN);
 int doorState;
 
-
+WaterSensor waterSensor(WATER_PIN);
 
 boolean startup = true;
 
@@ -39,12 +40,11 @@ void setup() {
   Serial.begin(115200);
   mqtt.setup();
   dhts.setup();
+  waterSensor.setup();
   
   pinMode(DOOR_PIN, INPUT_PULLUP);
   doorState = digitalRead(DOOR_PIN);
   attachInterrupt(digitalPinToInterrupt(DOOR_PIN), doorOpen, CHANGE);
-
-  pinMode(WATER_PIN, INPUT);
   
   delay(1000);
   startup = false;
@@ -54,13 +54,12 @@ void loop() {
   mqtt.check();
   readSensors();
   delay(10000);
-  //sleep();
 }
 
 void readSensors() {
   float temperature = dhts.temperature();
   float humidity = dhts.humidity();
-  boolean waterPresent = isExposedToWater();
+  boolean waterPresent = waterSensor.measure();
 
   String json = "{";
   json += "\"temperature\": ";
@@ -88,8 +87,4 @@ void doorOpen() {
     mqtt.publish("alert", json.c_str());
   }
   last_interrupt_time = interrupt_time;
-}
-
-boolean isExposedToWater() {
-  return (digitalRead(WATER_PIN) == LOW);
 }
