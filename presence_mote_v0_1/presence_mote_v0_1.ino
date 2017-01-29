@@ -12,9 +12,8 @@
 
 #include "MQTT.h"
 
-#define DEVICE_NAME     "presence-mote-01"
 #define RESET_SETTINGS  false
-MQTT mqtt(DEVICE_NAME, RESET_SETTINGS);
+MQTT mqtt(RESET_SETTINGS);
 
 #define DOOR_PIN 2
 int doorState;

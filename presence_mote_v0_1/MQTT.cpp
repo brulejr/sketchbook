@@ -8,8 +8,7 @@
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-MQTT::MQTT(char* deviceName, bool resetSettings) {
-  _deviceName = deviceName;
+MQTT::MQTT(bool resetSettings) {
   _resetSettings = resetSettings;
   _espClient = WiFiClient();
   _pubSubClient = PubSubClient(_espClient);  
@@ -93,6 +92,7 @@ void MQTT::_mountFFS() {
           strcpy(_mqttPort, json["mqtt_port"]);
           strcpy(_mqttUserId, json["mqtt_userid"]);
           strcpy(_mqttPasswd, json["mqtt_passwd"]);
+          strcpy(_deviceName, json["device_name"]);
 
         } else {
           Serial.println("failed to load json config");
@@ -121,10 +121,12 @@ void MQTT::_setupWifi() {
   WiFiManagerParameter custom_mqtt_port("port", "mqtt port", _mqttPort, 6);  
   WiFiManagerParameter custom_mqtt_userid("userid", "mqtt userid", _mqttUserId, 16);  
   WiFiManagerParameter custom_mqtt_passwd("passwd", "mqtt passwd", _mqttPasswd, 16);  
+  WiFiManagerParameter custom_device_name("deviceName", "device name", _deviceName, 32);  
   wifiManager.addParameter(&custom_mqtt_server);
   wifiManager.addParameter(&custom_mqtt_port);
   wifiManager.addParameter(&custom_mqtt_userid);
   wifiManager.addParameter(&custom_mqtt_passwd);
+  wifiManager.addParameter(&custom_device_name);
   
   if (_resetSettings) {
     wifiManager.resetSettings();
@@ -140,6 +142,7 @@ void MQTT::_setupWifi() {
   strcpy(_mqttPort, custom_mqtt_port.getValue());    
   strcpy(_mqttUserId, custom_mqtt_userid.getValue());    
   strcpy(_mqttPasswd, custom_mqtt_passwd.getValue());    
+  strcpy(_deviceName, custom_device_name.getValue());    
 }
 
 //------------------------------------------------------------------------------
@@ -153,6 +156,7 @@ void MQTT::_writeConfig() {
   json["mqtt_port"] = _mqttPort;
   json["mqtt_userid"] = _mqttUserId;
   json["mqtt_passwd"] = _mqttPasswd;
+  json["device_name"] = _deviceName;
 
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {

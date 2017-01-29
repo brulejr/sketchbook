@@ -18,14 +18,14 @@
 class MQTT
 {
   public:
-    MQTT(char* deviceName, bool resetSettings);
+    MQTT(bool resetSettings);
     void check();
     void publish(char* topic, const char* message);
     void setup();
   private:
     WiFiClient _espClient;
     PubSubClient _pubSubClient;
-    char* _deviceName;
+    char _deviceName[32];
     bool _resetSettings;
     char _mqttServer[40];
     char _mqttPort[6];
