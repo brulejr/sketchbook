@@ -12,7 +12,7 @@
 
 #include "MQTT.h"
 
-#define DEVICE_NAME     "water-mote-01"
+#define DEVICE_NAME     "presence-mote-01"
 #define RESET_SETTINGS  false
 MQTT mqtt(DEVICE_NAME, RESET_SETTINGS);
 
