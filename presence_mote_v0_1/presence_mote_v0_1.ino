@@ -16,10 +16,13 @@
 MQTT mqtt(RESET_SETTINGS);
 
 #define DOOR_PIN 2
-int doorState;
+volatile int doorState;
+volatile boolean stateChange = false;
+
+#define PIR_PIN 12
+int pirState;
 
 boolean startup = true;
-boolean stateChange = false;
 
 void setup() {
   Serial.begin(115200);
@@ -28,6 +31,9 @@ void setup() {
   pinMode(DOOR_PIN, INPUT_PULLUP);
   doorState = digitalRead(DOOR_PIN);
   attachInterrupt(digitalPinToInterrupt(DOOR_PIN), _doorStateChange, CHANGE);
+
+  pinMode(PIR_PIN, INPUT);
+  pirState = digitalRead(PIR_PIN);
 
   startup = false;
 }
@@ -42,6 +48,15 @@ void loop() {
     mqtt.publish("alert", json.c_str());    
     stateChange = false;
   }
+  if (doorState == HIGH) {
+    pirState = digitalRead(PIR_PIN);
+    if (pirState == HIGH) {
+      String json = "{\"door\": \"CLOSED\", \"motion\": \"DETECTED\"}";
+      Serial.print("Alert: "); Serial.println(json);
+      mqtt.publish("alert", json.c_str());
+    }
+  }
+  delay(1000);
 }
 
 void _doorStateChange() {
