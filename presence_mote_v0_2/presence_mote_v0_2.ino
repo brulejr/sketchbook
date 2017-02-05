@@ -16,10 +16,11 @@
 #define RESET_SETTINGS  false
 MQTT mqtt(RESET_SETTINGS);
 
-#define DOOR_PIN 2
+#define DOOR_PIN D9
 #define LIGHT_PIN A0
-#define MOTION_PIN 12
-Sensors sensors(DOOR_PIN, LIGHT_PIN, MOTION_PIN, &mqtt);
+#define MOTION_PIN D6
+#define WATER_PIN D8
+Sensors sensors(DOOR_PIN, LIGHT_PIN, MOTION_PIN, WATER_PIN, &mqtt);
 
 void setup() {
   Serial.begin(115200);

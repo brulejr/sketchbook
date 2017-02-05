@@ -8,18 +8,21 @@
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-Sensors::Sensors(int doorPin, int lightPin, int motionPin, MQTT* mqtt) {
+Sensors::Sensors(int doorPin, int lightPin, int motionPin, int waterPin, MQTT* mqtt) {
   _doorPin = doorPin;
   _lightPin = lightPin;
   _motionPin = motionPin;
+  _waterPin = waterPin;
   _mqtt = mqtt;
 
   pinMode(_doorPin, INPUT_PULLUP);
   pinMode(_lightPin, INPUT);
+  pinMode(_waterPin, INPUT);
 
   readDoor(true);
   readLight(true);
   readMotion(true);
+  readWater(true);
 }
 
 //------------------------------------------------------------------------------
@@ -28,13 +31,14 @@ Sensors::Sensors(int doorPin, int lightPin, int motionPin, MQTT* mqtt) {
 void Sensors::check() {
   readLight(true);
   readMotion(true);
+  readWater(true);
   
   if (_stateChange) {
     _report("alert");
     _stateChange = false;
   }
-  if (_doorState == HIGH) {
-    if (_motionState == HIGH) {
+  if (!_doorOpen) {
+    if (_motionPresent) {
       _report("alert");
     }
   }  
@@ -56,17 +60,17 @@ void Sensors::interrupt() {
 //------------------------------------------------------------------------------
 // obtains door measurement
 //
-int Sensors::readDoor(bool read) {
+boolean Sensors::readDoor(boolean read) {
   if (read) {
-    _doorState = digitalRead(_doorPin);
+    _doorOpen = (digitalRead(_doorPin) == LOW);
   }
-  return _doorState;
+  return _doorOpen;
 }
 
 //------------------------------------------------------------------------------
 // obtains light measurement
 //
-int Sensors::readLight(bool read) {
+int Sensors::readLight(boolean read) {
   if (read) {
     _lightState = analogRead(_lightPin);
   }
@@ -76,22 +80,30 @@ int Sensors::readLight(bool read) {
 //------------------------------------------------------------------------------
 // obtains motion measurement
 //
-int Sensors::readMotion(bool read) {
+boolean Sensors::readMotion(boolean read) {
   if (read) {
-    _motionState = digitalRead(_motionPin);
+    _motionPresent = (digitalRead(_motionPin) == HIGH);
   }
-  return _motionState;
+  return _motionPresent;
 }
 
+//------------------------------------------------------------------------------
+// obtains water measurement
+//
+boolean Sensors::readWater(boolean read) {
+  if (read) {
+    _waterPresent = (digitalRead(_waterPin) == LOW);
+  }
+  return _waterPresent;
+}
 //------------------------------------------------------------------------------
 // publishes a sensor report
 //
 void Sensors::_report(char* topic) {
-    const char* doorState = (_doorState == LOW ? "OPEN" : "CLOSED");
     String json = "{";
     
     json += "\"door\": \""; 
-    json += (_doorState == LOW ? "OPEN" : "CLOSED"); 
+    json += (_doorOpen ? "OPEN" : "CLOSED"); 
     json += "\"";
     
     json += ", \"light\": \""; 
@@ -99,7 +111,11 @@ void Sensors::_report(char* topic) {
     json += "\"";
     
     json += ", \"motion\": \""; 
-    json += (_motionState == LOW ? "NONE" : "DETECTED"); 
+    json += (_motionPresent ? "DETECTED" : "NONE"); 
+    json += "\"";
+    
+    json += ", \"water\": \""; 
+    json += (_waterPresent ? "PRESENT" : "NOT PRESENT"); 
     json += "\"";
     
     json += "}";
