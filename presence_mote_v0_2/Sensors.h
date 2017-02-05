@@ -26,6 +26,7 @@ class Sensors
     volatile int _doorState;
     int _lightState;
     int _motionState;
+    void _report(char* topic);
 };
 
 #endif

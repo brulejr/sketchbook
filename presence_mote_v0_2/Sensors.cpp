@@ -30,26 +30,18 @@ void Sensors::check() {
   readMotion(true);
   
   if (_stateChange) {
-    String json = "{\"door\": \"";
-    json += (_doorState == LOW ? "OPEN" : "CLOSED");
-    json += "\"}";
-    Serial.print("Alert: "); Serial.println(json);
-    _mqtt->publish("alert", json.c_str());    
+    _report("alert");
     _stateChange = false;
   }
   if (_doorState == HIGH) {
     if (_motionState == HIGH) {
-      String json = "{\"door\": \"CLOSED\", \"motion\": \"DETECTED\"}";
-      Serial.print("Alert: "); Serial.println(json);
-      _mqtt->publish("alert", json.c_str());
+      _report("alert");
     }
   }  
-
-  Serial.print("LDR = "); Serial.println(_lightState);
 }
 
 //------------------------------------------------------------------------------
-//
+// logic to be called by global interrupt service routine
 //
 void Sensors::interrupt() {
   static unsigned long last_interrupt_time = 0;
@@ -89,5 +81,29 @@ int Sensors::readMotion(bool read) {
     _motionState = digitalRead(_motionPin);
   }
   return _motionState;
+}
+
+//------------------------------------------------------------------------------
+// publishes a sensor report
+//
+void Sensors::_report(char* topic) {
+    const char* doorState = (_doorState == LOW ? "OPEN" : "CLOSED");
+    String json = "{";
+    
+    json += "\"door\": \""; 
+    json += (_doorState == LOW ? "OPEN" : "CLOSED"); 
+    json += "\"";
+    
+    json += ", \"light\": \""; 
+    json += _lightState; 
+    json += "\"";
+    
+    json += ", \"motion\": \""; 
+    json += (_motionState == LOW ? "NONE" : "DETECTED"); 
+    json += "\"";
+    
+    json += "}";
+    Serial.print(topic); Serial.print(": "); Serial.println(json);
+    _mqtt->publish(topic, json.c_str());      
 }
 
