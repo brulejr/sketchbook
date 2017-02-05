@@ -8,10 +8,11 @@
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-Sensors::Sensors(int doorPin, int lightPin, int motionPin) {
+Sensors::Sensors(int doorPin, int lightPin, int motionPin, MQTT* mqtt) {
   _doorPin = doorPin;
   _lightPin = lightPin;
   _motionPin = motionPin;
+  _mqtt = mqtt;
 
   pinMode(_doorPin, INPUT_PULLUP);
   pinMode(_lightPin, INPUT);
@@ -19,6 +20,45 @@ Sensors::Sensors(int doorPin, int lightPin, int motionPin) {
   readDoor(true);
   readLight(true);
   readMotion(true);
+}
+
+//------------------------------------------------------------------------------
+// check the current sensors
+//
+void Sensors::check() {
+  readLight(true);
+  readMotion(true);
+  
+  if (_stateChange) {
+    String json = "{\"door\": \"";
+    json += (_doorState == LOW ? "OPEN" : "CLOSED");
+    json += "\"}";
+    Serial.print("Alert: "); Serial.println(json);
+    _mqtt->publish("alert", json.c_str());    
+    _stateChange = false;
+  }
+  if (_doorState == HIGH) {
+    if (_motionState == HIGH) {
+      String json = "{\"door\": \"CLOSED\", \"motion\": \"DETECTED\"}";
+      Serial.print("Alert: "); Serial.println(json);
+      _mqtt->publish("alert", json.c_str());
+    }
+  }  
+
+  Serial.print("LDR = "); Serial.println(_lightState);
+}
+
+//------------------------------------------------------------------------------
+//
+//
+void Sensors::interrupt() {
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  if (interrupt_time - last_interrupt_time > 200) {
+    readDoor(true);
+    _stateChange = true;
+  }
+  last_interrupt_time = interrupt_time;  
 }
 
 //------------------------------------------------------------------------------

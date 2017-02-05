@@ -19,52 +19,21 @@ MQTT mqtt(RESET_SETTINGS);
 #define DOOR_PIN 2
 #define LIGHT_PIN A0
 #define MOTION_PIN 12
-Sensors sensors(DOOR_PIN, LIGHT_PIN, MOTION_PIN);
-
-volatile int doorState;
-volatile boolean stateChange = false;
-
-boolean startup = true;
+Sensors sensors(DOOR_PIN, LIGHT_PIN, MOTION_PIN, &mqtt);
 
 void setup() {
   Serial.begin(115200);
   mqtt.setup();
-
-  pinMode(DOOR_PIN, INPUT_PULLUP);
-  doorState = digitalRead(DOOR_PIN);
+  
   attachInterrupt(digitalPinToInterrupt(DOOR_PIN), _doorStateChange, CHANGE);
-
-  startup = false;
 }
 
 void loop() {
   mqtt.check();
-  if (stateChange) {
-    String json = "{\"door\": \"";
-    json += (doorState == LOW ? "OPEN" : "CLOSED");
-    json += "\"}";
-    Serial.print("Alert: "); Serial.println(json);
-    mqtt.publish("alert", json.c_str());    
-    stateChange = false;
-  }
-  if (doorState == HIGH) {
-    if (sensors.readMotion(true) == HIGH) {
-      String json = "{\"door\": \"CLOSED\", \"motion\": \"DETECTED\"}";
-      Serial.print("Alert: "); Serial.println(json);
-      mqtt.publish("alert", json.c_str());
-    }
-  }
-
-  Serial.print("LDR = "); Serial.println(sensors.readLight(true));
+  sensors.check();
   delay(1000);
 }
 
 void _doorStateChange() {
-  static unsigned long last_interrupt_time = 0;
-  unsigned long interrupt_time = millis();
-  if (!startup && (interrupt_time - last_interrupt_time > 200)) {
-    doorState = digitalRead(DOOR_PIN);
-    stateChange = true;
-  }
-  last_interrupt_time = interrupt_time;
+  sensors.interrupt();
 }
