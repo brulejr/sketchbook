@@ -63,10 +63,10 @@ void MQTT::setup() {
 // mount file system
 //
 void MQTT::_mountFFS() {
-  if (_resetSettings) {
-    Serial.println("formatting FS...");
-    SPIFFS.format();
-  }
+//  if (_resetSettings) {
+//    Serial.println("formatting FS...");
+//    SPIFFS.format();
+//  }
   
   Serial.println("mounting FS...");
   if (SPIFFS.begin()) {

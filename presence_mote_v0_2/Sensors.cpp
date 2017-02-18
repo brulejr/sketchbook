@@ -8,46 +8,34 @@
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-Sensors::Sensors(int doorPin, int lightPin, int motionPin, int waterPin, MQTT* mqtt) {
+Sensors::Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int waterPin, MQTT* mqtt) {
   _doorPin = doorPin;
+  _dhtPin = dhtPin;
   _lightPin = lightPin;
   _motionPin = motionPin;
   _waterPin = waterPin;
   _mqtt = mqtt;
-
-  pinMode(_doorPin, INPUT_PULLUP);
-  pinMode(_lightPin, INPUT);
-  pinMode(_waterPin, INPUT);
-
-  readDoor(true);
-  readLight(true);
-  readMotion(true);
-  readWater(true);
 }
 
 //------------------------------------------------------------------------------
-// check the current sensors
+// check the current sensors for alerts
 //
-void Sensors::check() {
-  readLight(true);
-  readMotion(true);
-  readWater(true);
-  
+void Sensors::checkForAlerts() {
   if (_stateChange) {
     _report("alert");
-    _stateChange = false;
   }
   if (!_doorOpen) {
     if (_motionPresent) {
       _report("alert");
     }
-  }  
+  }
+  _stateChange = false;
 }
 
 //------------------------------------------------------------------------------
-// logic to be called by global interrupt service routine
+// logic to be called by global interrupt service routine door state changes
 //
-void Sensors::interrupt() {
+void Sensors::handleDoorInterrupt() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   if (interrupt_time - last_interrupt_time > 200) {
@@ -55,6 +43,46 @@ void Sensors::interrupt() {
     _stateChange = true;
   }
   last_interrupt_time = interrupt_time;  
+}
+
+//------------------------------------------------------------------------------
+// logic to be called by global interrupt service routine when motion detected
+//
+void Sensors::handleMotionInterrupt() {
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  if (interrupt_time - last_interrupt_time > 200) {
+    readMotion(true);
+    _stateChange = true;
+  }
+  last_interrupt_time = interrupt_time;  
+}
+
+//------------------------------------------------------------------------------
+// 
+//
+void Sensors::measure() {
+  readDoor(true);
+  readHumidity(true);
+  readLight(true);
+  readMotion(true);
+  readWater(true);
+  readTemperature(true);
+  _report("measurement");
+}
+
+//------------------------------------------------------------------------------
+// obtains the humidity
+//
+float Sensors::readHumidity(boolean read) {
+  if (read) {
+    sensors_event_t event;
+    _dht->humidity().getEvent(&event);
+    if (isnan(event.relative_humidity)) {
+      _humidity = event.relative_humidity;
+    }
+  }
+  return _humidity;  
 }
 
 //------------------------------------------------------------------------------
@@ -88,6 +116,20 @@ boolean Sensors::readMotion(boolean read) {
 }
 
 //------------------------------------------------------------------------------
+// obtains the temperature
+//
+float Sensors::readTemperature(boolean read) {
+  if (read) {
+    sensors_event_t event;
+    _dht->temperature().getEvent(&event);
+    if (isnan(event.temperature)) {
+      _temperature = event.temperature;
+    }
+  }
+  return _temperature;
+}
+
+//------------------------------------------------------------------------------
 // obtains water measurement
 //
 boolean Sensors::readWater(boolean read) {
@@ -96,6 +138,44 @@ boolean Sensors::readWater(boolean read) {
   }
   return _waterPresent;
 }
+
+//------------------------------------------------------------------------------
+// performs any sensor configuration
+//
+void Sensors::setup() {
+  
+  pinMode(_doorPin, INPUT_PULLUP);
+  pinMode(_lightPin, INPUT);
+  pinMode(_waterPin, INPUT);
+
+  _dht = new DHT_Unified(_dhtPin, DHTTYPE);
+  _dht->begin();
+  sensor_t sensor;
+  _dht->temperature().getSensor(&sensor);
+  Serial.println("------------------------------------");
+  Serial.println("Temperature");
+  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" *C");
+  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" *C");
+  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" *C");  
+  _dht->humidity().getSensor(&sensor);
+  Serial.println("Humidity");
+  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println("%");
+  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println("%");
+  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println("%");  
+  Serial.println("------------------------------------");
+
+  readDoor(true);
+  readLight(true);
+  readMotion(true);
+  readWater(true);
+}
+
 //------------------------------------------------------------------------------
 // publishes a sensor report
 //
@@ -112,6 +192,10 @@ void Sensors::_report(char* topic) {
     
     json += ", \"motion\": \""; 
     json += (_motionPresent ? "DETECTED" : "NONE"); 
+    json += "\"";
+    
+    json += ", \"temperature\": \""; 
+    json += _temperature; 
     json += "\"";
     
     json += ", \"water\": \""; 
