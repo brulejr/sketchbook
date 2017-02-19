@@ -5,16 +5,21 @@
  
    Circuit:
    * ESP8266 (NodeMCU)
-   * Door sensor attached to digitial pin 2
+   * Door sensor attached to digitial pin D2
+   * Motion sensor (PIR) attach to digital pin D3
+   * Water sensor attached to digital pin D4
+   * DHT sensor on digital pin D5
+   * Light sensor on analog pin A0
  
-   Created 28-JAN-2017 by Jon Brule
+   Created 18-FEB-2017 by Jon Brule
 ----------------------------------------------------------------------------- */
 
 #include "MQTT.h"
 #include "Sensors.h"
 
-#define RESET_SETTINGS  false
-MQTT mqtt(RESET_SETTINGS);
+#define RESET_WIFI  false
+#define RESET_FFS   false
+MQTT mqtt(RESET_WIFI, RESET_FFS);
 
 #define ALERT_PERIOD 1000
 #define MEASUREMENT_PERIOD 10000

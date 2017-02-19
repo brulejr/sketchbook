@@ -1,6 +1,6 @@
 /*
   MQTT.h - Encapsulates MQTT / PubSubClient operations
-  Created 26-JAN-2017 by Jon Brule
+  Created 18-FEB-2017 by Jon Brule
 */
 #ifndef MQTT_h
 #define MQTT_h
@@ -18,7 +18,7 @@
 class MQTT
 {
   public:
-    MQTT(bool resetSettings);
+    MQTT(boolean resetWIFI, boolean resetFFS);
     void check();
     void publish(char* topic, const char* message);
     void setup();
@@ -26,7 +26,8 @@ class MQTT
     WiFiClient _espClient;
     PubSubClient _pubSubClient;
     char _deviceName[32];
-    bool _resetSettings;
+    boolean _resetFFS;
+    boolean _resetWIFI;
     char _mqttServer[40];
     char _mqttPort[6];
     char _mqttUserId[16];

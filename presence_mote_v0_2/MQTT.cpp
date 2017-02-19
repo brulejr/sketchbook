@@ -1,6 +1,6 @@
 /*
   MQTT.cpp - Encapsulates MQTT / PubSubClient operations
-  Created 26-JAN-2017 by Jon Brule
+  Created 18-FEB-2017 by Jon Brule
 */
 #include "Arduino.h"
 #include "MQTT.h"
@@ -8,8 +8,9 @@
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-MQTT::MQTT(bool resetSettings) {
-  _resetSettings = resetSettings;
+MQTT::MQTT(boolean resetWIFI, boolean resetFFS) {
+  _resetWIFI = resetWIFI;
+  _resetFFS = resetFFS;
   _espClient = WiFiClient();
   _pubSubClient = PubSubClient(_espClient);  
 }
@@ -68,10 +69,10 @@ void MQTT::setup() {
 // mount file system
 //
 void MQTT::_mountFFS() {
-//  if (_resetSettings) {
-//    Serial.println("formatting FS...");
-//    SPIFFS.format();
-//  }
+  if (_resetFFS) {
+    Serial.println("formatting FS...");
+    SPIFFS.format();
+  }
   
   Serial.println("mounting FS...");
   if (SPIFFS.begin()) {
@@ -133,7 +134,7 @@ void MQTT::_setupWifi() {
   wifiManager.addParameter(&custom_mqtt_passwd);
   wifiManager.addParameter(&custom_device_name);
   
-  if (_resetSettings) {
+  if (_resetWIFI) {
     wifiManager.resetSettings();
   }
   

@@ -1,6 +1,6 @@
 /*
   Sensors.cpp - Sensors library
-  Created 04-FEB-2017 by Jon Brule
+  Created 18-FEB-2017 by Jon Brule
 */
 #include "Arduino.h"
 #include "Sensors.h"
@@ -22,7 +22,9 @@ Sensors::Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int water
 //
 void Sensors::checkForAlerts() {
   if (_stateChange) {
-    if (_doorOpen || _motionPresent) {
+    if (_doorOpen) {
+        _report("alert");
+    } else if (_motionPresent) {
         _report("alert");
     }
   }

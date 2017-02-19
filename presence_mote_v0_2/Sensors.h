@@ -1,6 +1,6 @@
 /*
   Sensors.h - Encapsulates MQTT / PubSubClient operations
-  Created 26-JAN-2017 by Jon Brule
+  Created 18-FEB-2017 by Jon Brule
 */
 #ifndef Sensors_h
 #define Sensors_h
