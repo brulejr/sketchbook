@@ -22,7 +22,9 @@ Sensors::Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int water
 //
 void Sensors::checkForAlerts() {
   if (_stateChange) {
-    if (_doorOpen) {
+    if (_waterPresent) {
+        _report("alert");
+    } else if (_doorOpen) {
         _report("alert");
     } else if (_motionPresent) {
         _report("alert");
@@ -60,6 +62,18 @@ void Sensors::handleMotionInterrupt() {
   last_interrupt_time = interrupt_time;  
 }
 
+//------------------------------------------------------------------------------
+// logic to be called by global interrupt service routine water state changes
+//
+void Sensors::handleWaterInterrupt() {
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  if (interrupt_time - last_interrupt_time > 200) {
+    _waterPresent = _readWater();
+    _stateChange = true;
+  }
+  last_interrupt_time = interrupt_time;  
+}
 //------------------------------------------------------------------------------
 // 
 //
@@ -120,10 +134,10 @@ boolean Sensors::_readDoor() {
 float Sensors::_readHumidity() {
   sensors_event_t event;
   _dht->humidity().getEvent(&event);
-  if (isnan(event.relative_humidity)) {
+  if (!isnan(event.relative_humidity)) {
     return event.relative_humidity;
   } else {
-    return 0.0;
+    return BAD_READING;
   }
 }
 
@@ -147,10 +161,10 @@ boolean Sensors::_readMotion() {
 float Sensors::_readTemperature() {
   sensors_event_t event;
   _dht->temperature().getEvent(&event);
-  if (isnan(event.temperature)) {
+  if (!isnan(event.temperature)) {
     return event.temperature;
   } else {
-    return 0.0;
+    return BAD_READING;
   }
 }
 

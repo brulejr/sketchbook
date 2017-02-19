@@ -40,6 +40,7 @@ void setup() {
   sensors.setup();
   attachInterrupt(digitalPinToInterrupt(DOOR_PIN), _doorStateChanged, CHANGE);
   attachInterrupt(digitalPinToInterrupt(MOTION_PIN), _motionStateChanged, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(WATER_PIN), _waterStateChanged, CHANGE);
 }
 
 void loop() {
@@ -64,4 +65,8 @@ void _doorStateChanged() {
 
 void _motionStateChanged() {
   sensors.handleMotionInterrupt();
+}
+
+void _waterStateChanged() {
+  sensors.handleWaterInterrupt();
 }

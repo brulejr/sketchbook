@@ -11,6 +11,7 @@
 #include "MQTT.h"
 
 #define DHTTYPE DHT22
+#define BAD_READING -3.4028235E+38
 
 class Sensors
 {
@@ -19,6 +20,7 @@ class Sensors
     void checkForAlerts();
     void handleDoorInterrupt();
     void handleMotionInterrupt();
+    void handleWaterInterrupt();
     void measure();
     void setup();
   private:
@@ -32,17 +34,16 @@ class Sensors
     volatile boolean _stateChange;
     volatile boolean _doorOpen;
     volatile boolean _motionPresent;
+    volatile boolean _waterPresent;
     int _lightState;
     float _humidity;
     float _temperature;
-    boolean _waterPresent;
     boolean _readDoor();
     float _readHumidity();
     int _readLight();
     boolean _readMotion();
     boolean _readWater();
     float _readTemperature();
-    
     void _report(char* topic);
 };
 
