@@ -10,8 +10,6 @@ void setup() {
   radio.initialize(RF69_915MHZ, 99, 99);
   radio.setHighPower();
   pinMode(LED, OUTPUT);
-  PORTD = B00000000;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
-  PORTB = B00000000;  // enable pullups on pins 2 to 7, leave pins 0 and 1 alone
 }
 
 void loop() {

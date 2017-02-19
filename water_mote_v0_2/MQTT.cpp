@@ -42,7 +42,7 @@ void MQTT::check() {
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-void MQTT::publish(char* topic, char* message) {
+void MQTT::publish(char* topic, const char* message) {
   String topicPath = _deviceName;
   topicPath += "/";
   topicPath += topic;

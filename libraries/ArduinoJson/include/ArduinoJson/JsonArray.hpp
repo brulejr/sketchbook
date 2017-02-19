@@ -1,15 +1,23 @@
-// Copyright Benoit Blanchon 2014
+// Copyright Benoit Blanchon 2014-2017
 // MIT License
 //
 // Arduino JSON library
 // https://github.com/bblanchon/ArduinoJson
+// If you like this project, please add a star!
 
 #pragma once
 
-#include "Internals/JsonPrintable.hpp"
-#include "Internals/List.hpp"
-#include "Internals/ReferenceType.hpp"
+#include "Data/JsonBufferAllocated.hpp"
+#include "Data/List.hpp"
+#include "Data/ReferenceType.hpp"
+#include "Data/ValueSetter.hpp"
 #include "JsonVariant.hpp"
+#include "Serialization/JsonPrintable.hpp"
+#include "StringTraits/StringTraits.hpp"
+#include "TypeTraits/EnableIf.hpp"
+#include "TypeTraits/IsArray.hpp"
+#include "TypeTraits/IsFloatingPoint.hpp"
+#include "TypeTraits/IsSame.hpp"
 
 // Returns the size (in bytes) of an array with n elements.
 // Can be very handy to determine the size of a StaticJsonBuffer.
@@ -21,6 +29,7 @@ namespace ArduinoJson {
 // Forward declarations
 class JsonObject;
 class JsonBuffer;
+class JsonArraySubscript;
 
 // An array of JsonVariant.
 //
@@ -30,36 +39,89 @@ class JsonBuffer;
 // It can also be deserialized from a JSON string via JsonBuffer::parseArray().
 class JsonArray : public Internals::JsonPrintable<JsonArray>,
                   public Internals::ReferenceType,
-                  public Internals::List<JsonVariant> {
-  // JsonBuffer is a friend because it needs to call the private constructor.
-  friend class JsonBuffer;
-
+                  public Internals::List<JsonVariant>,
+                  public Internals::JsonBufferAllocated {
  public:
-  // Returns the JsonVariant at the specified index (synonym for operator[])
-  JsonVariant &at(int index) const;
+  // Create an empty JsonArray attached to the specified JsonBuffer.
+  // You should not call this constructor directly.
+  // Instead, use JsonBuffer::createArray() or JsonBuffer::parseArray().
+  explicit JsonArray(JsonBuffer *buffer)
+      : Internals::List<JsonVariant>(buffer) {}
 
-  // Returns the JsonVariant at the specified index (synonym for at())
-  JsonVariant &operator[](int index) const { return at(index); }
+  // Gets the value at the specified index
+  const JsonArraySubscript operator[](size_t index) const;
 
-  // Adds an uninitialized JsonVariant at the end of the array.
-  // Return a reference or JsonVariant::invalid() if allocation fails.
-  JsonVariant &add();
+  // Gets or sets the value at specified index
+  JsonArraySubscript operator[](size_t index);
 
   // Adds the specified value at the end of the array.
+  //
+  // bool add(TValue);
+  // TValue = bool, long, int, short, float, double, RawJson, JsonVariant,
+  //          const std::string&, const String&,
+  //          const JsonArray&, const JsonObject&
   template <typename T>
-  void add(T value) {
-    add().set(value);
+  typename TypeTraits::EnableIf<!TypeTraits::IsArray<T>::value, bool>::type add(
+      const T &value) {
+    return add_impl<const T &>(value);
+  }
+  //
+  // bool add(TValue);
+  // TValue = const char*, const char[N], const FlashStringHelper*
+  template <typename T>
+  bool add(const T *value) {
+    return add_impl<const T *>(value);
+  }
+  //
+  // bool add(TValue value, uint8_t decimals);
+  // TValue = float, double
+  template <typename T>
+  bool add(T value, uint8_t decimals) {
+    return add_impl<const JsonVariant &>(JsonVariant(value, decimals));
   }
 
-  // Adds the specified double value at the end of the array.
-  // The value will be printed with the specified number of decimal digits.
-  void add(double value, uint8_t decimals) { add().set(value, decimals); }
+  // Sets the value at specified index.
+  //
+  // bool add(size_t index, TValue);
+  // TValue = bool, long, int, short, float, double, RawJson, JsonVariant,
+  //          const std::string&, const String&,
+  //          const JsonArray&, const JsonObject&
+  template <typename T>
+  typename TypeTraits::EnableIf<!TypeTraits::IsArray<T>::value, bool>::type set(
+      size_t index, const T &value) {
+    return set_impl<const T &>(index, value);
+  }
+  //
+  // bool add(size_t index, TValue);
+  // TValue = const char*, const char[N], const FlashStringHelper*
+  template <typename T>
+  bool set(size_t index, const T *value) {
+    return set_impl<const T *>(index, value);
+  }
+  //
+  // bool set(size_t index, TValue value, uint8_t decimals);
+  // TValue = float, double
+  template <typename T>
+  typename TypeTraits::EnableIf<TypeTraits::IsFloatingPoint<T>::value,
+                                bool>::type
+  set(size_t index, T value, uint8_t decimals) {
+    return set_impl<const JsonVariant &>(index, JsonVariant(value, decimals));
+  }
 
-  // Adds a reference to the specified JsonArray at the end of the array.
-  void add(JsonArray &array) { add().set(array); }
+  // Gets the value at the specified index.
+  template <typename T>
+  typename Internals::JsonVariantAs<T>::type get(size_t index) const {
+    node_type *node = findNode(index);
+    return node ? node->content.as<T>()
+                : Internals::JsonVariantDefault<T>::get();
+  }
 
-  // Adds a reference to the specified JsonObject at the end of the array.
-  void add(JsonObject &obejct) { add().set(obejct); }
+  // Check the type of the value at specified index.
+  template <typename T>
+  bool is(size_t index) const {
+    node_type *node = findNode(index);
+    return node ? node->content.is<T>() : false;
+  }
 
   // Creates a JsonArray and adds a reference at the end of the array.
   // It's a shortcut for JsonBuffer::createArray() and JsonArray::add()
@@ -69,20 +131,104 @@ class JsonArray : public Internals::JsonPrintable<JsonArray>,
   // It's a shortcut for JsonBuffer::createObject() and JsonArray::add()
   JsonObject &createNestedObject();
 
+  // Removes element at specified index.
+  void removeAt(size_t index) {
+    removeNode(findNode(index));
+  }
+
   // Returns a reference an invalid JsonArray.
   // This object is meant to replace a NULL pointer.
   // This is used when memory allocation or JSON parsing fail.
-  static JsonArray &invalid() { return _invalid; }
+  static JsonArray &invalid() {
+    static JsonArray instance(NULL);
+    return instance;
+  }
 
-  // Serialize the array to the specified JsonWriter.
-  void writeTo(Internals::JsonWriter &writer) const;
+  // Imports a 1D array
+  template <typename T, size_t N>
+  bool copyFrom(T (&array)[N]) {
+    return copyFrom(array, N);
+  }
+
+  // Imports a 1D array
+  template <typename T>
+  bool copyFrom(T *array, size_t len) {
+    bool ok = true;
+    for (size_t i = 0; i < len; i++) {
+      ok &= add(array[i]);
+    }
+    return ok;
+  }
+
+  // Imports a 2D array
+  template <typename T, size_t N1, size_t N2>
+  bool copyFrom(T (&array)[N1][N2]) {
+    bool ok = true;
+    for (size_t i = 0; i < N1; i++) {
+      JsonArray &nestedArray = createNestedArray();
+      for (size_t j = 0; j < N2; j++) {
+        ok &= nestedArray.add(array[i][j]);
+      }
+    }
+    return ok;
+  }
+
+  // Exports a 1D array
+  template <typename T, size_t N>
+  size_t copyTo(T (&array)[N]) const {
+    return copyTo(array, N);
+  }
+
+  // Exports a 1D array
+  template <typename T>
+  size_t copyTo(T *array, size_t len) const {
+    size_t i = 0;
+    for (const_iterator it = begin(); it != end() && i < len; ++it)
+      array[i++] = *it;
+    return i;
+  }
+
+  // Exports a 2D array
+  template <typename T, size_t N1, size_t N2>
+  void copyTo(T (&array)[N1][N2]) const {
+    size_t i = 0;
+    for (const_iterator it = begin(); it != end() && i < N1; ++it) {
+      it->as<JsonArray>().copyTo(array[i++]);
+    }
+  }
 
  private:
-  // Create an empty JsonArray attached to the specified JsonBuffer.
-  explicit JsonArray(JsonBuffer *buffer)
-      : Internals::List<JsonVariant>(buffer) {}
+  node_type *findNode(size_t index) const {
+    node_type *node = _firstNode;
+    while (node && index--) node = node->next;
+    return node;
+  }
 
-  // The instance returned by JsonArray::invalid()
-  static JsonArray _invalid;
+  template <typename TValueRef>
+  bool set_impl(size_t index, TValueRef value) {
+    node_type *node = findNode(index);
+    if (!node) return false;
+
+    return Internals::ValueSetter<TValueRef>::set(_buffer, node->content,
+                                                  value);
+  }
+
+  template <typename TValueRef>
+  bool add_impl(TValueRef value) {
+    node_type *node = addNewNode();
+    if (!node) return false;
+
+    return Internals::ValueSetter<TValueRef>::set(_buffer, node->content,
+                                                  value);
+  }
 };
+
+namespace Internals {
+template <>
+struct JsonVariantDefault<JsonArray> {
+  static JsonArray &get() {
+    return JsonArray::invalid();
+  }
+};
+}
 }

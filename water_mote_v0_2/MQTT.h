@@ -20,7 +20,7 @@ class MQTT
   public:
     MQTT(char* deviceName, bool resetSettings);
     void check();
-    void publish(char* topic, char* message);
+    void publish(char* topic, const char* message);
     void setup();
   private:
     WiFiClient _espClient;

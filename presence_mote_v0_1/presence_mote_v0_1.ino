@@ -22,6 +22,9 @@ volatile boolean stateChange = false;
 #define PIR_PIN 12
 int pirState;
 
+#define LDR_PIN A0
+int ldrState;
+
 boolean startup = true;
 
 void setup() {
@@ -34,6 +37,8 @@ void setup() {
 
   pinMode(PIR_PIN, INPUT);
   pirState = digitalRead(PIR_PIN);
+
+  ldrState = analogRead(A0);
 
   startup = false;
 }
@@ -56,6 +61,9 @@ void loop() {
       mqtt.publish("alert", json.c_str());
     }
   }
+
+  ldrState = analogRead(A0);
+  Serial.print("LDR = "); Serial.println(ldrState);
   delay(1000);
 }
 

@@ -1,67 +1,159 @@
-// Copyright Benoit Blanchon 2014
+// Copyright Benoit Blanchon 2014-2017
 // MIT License
 //
 // Arduino JSON library
 // https://github.com/bblanchon/ArduinoJson
+// If you like this project, please add a star!
 
 #pragma once
 
-#include "JsonBuffer.hpp"
+#include "JsonBufferBase.hpp"
+
+#include <stdlib.h>
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnon-virtual-dtor"
+#elif defined(__GNUC__)
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
 
 namespace ArduinoJson {
+class DefaultAllocator {
+ public:
+  void* allocate(size_t size) {
+    return malloc(size);
+  }
+  void deallocate(void* pointer) {
+    free(pointer);
+  }
+};
+
+template <typename TAllocator>
+class DynamicJsonBufferBase
+    : public JsonBufferBase<DynamicJsonBufferBase<TAllocator> > {
+  struct Block;
+  struct EmptyBlock {
+    Block* next;
+    size_t capacity;
+    size_t size;
+  };
+  struct Block : EmptyBlock {
+    uint8_t data[1];
+  };
+
+ public:
+  DynamicJsonBufferBase(size_t initialSize = 256)
+      : _head(NULL), _nextBlockCapacity(initialSize) {}
+
+  ~DynamicJsonBufferBase() {
+    Block* currentBlock = _head;
+
+    while (currentBlock != NULL) {
+      Block* nextBlock = currentBlock->next;
+      _allocator.deallocate(currentBlock);
+      currentBlock = nextBlock;
+    }
+  }
+
+  size_t size() const {
+    size_t total = 0;
+    for (const Block* b = _head; b; b = b->next) total += b->size;
+    return total;
+  }
+
+  virtual void* alloc(size_t bytes) {
+    alignNextAlloc();
+    return canAllocInHead(bytes) ? allocInHead(bytes) : allocInNewBlock(bytes);
+  }
+
+  class String {
+   public:
+    String(DynamicJsonBufferBase* parent)
+        : _parent(parent), _start(NULL), _length(0) {}
+
+    void append(char c) {
+      if (_parent->canAllocInHead(1)) {
+        char* end = static_cast<char*>(_parent->allocInHead(1));
+        *end = c;
+        if (_length == 0) _start = end;
+      } else {
+        char* newStart =
+            static_cast<char*>(_parent->allocInNewBlock(_length + 1));
+        if (_start && newStart) memcpy(newStart, _start, _length);
+        newStart[_length] = c;
+        _start = newStart;
+      }
+      _length++;
+    }
+
+    const char* c_str() {
+      append(0);
+      return _start;
+    }
+
+   private:
+    DynamicJsonBufferBase* _parent;
+    char* _start;
+    int _length;
+  };
+
+  String startString() {
+    return String(this);
+  }
+
+ private:
+  void alignNextAlloc() {
+    if (_head) _head->size = this->round_size_up(_head->size);
+  }
+
+  bool canAllocInHead(size_t bytes) const {
+    return _head != NULL && _head->size + bytes <= _head->capacity;
+  }
+
+  void* allocInHead(size_t bytes) {
+    void* p = _head->data + _head->size;
+    _head->size += bytes;
+    return p;
+  }
+
+  void* allocInNewBlock(size_t bytes) {
+    size_t capacity = _nextBlockCapacity;
+    if (bytes > capacity) capacity = bytes;
+    if (!addNewBlock(capacity)) return NULL;
+    _nextBlockCapacity *= 2;
+    return allocInHead(bytes);
+  }
+
+  bool addNewBlock(size_t capacity) {
+    size_t bytes = sizeof(EmptyBlock) + capacity;
+    Block* block = static_cast<Block*>(_allocator.allocate(bytes));
+    if (block == NULL) return false;
+    block->capacity = capacity;
+    block->size = 0;
+    block->next = _head;
+    _head = block;
+    return true;
+  }
+
+  TAllocator _allocator;
+  Block* _head;
+  size_t _nextBlockCapacity;
+};
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic pop
+#endif
+#endif
 
 // Implements a JsonBuffer with dynamic memory allocation.
 // You are strongly encouraged to consider using StaticJsonBuffer which is much
 // more suitable for embedded systems.
-class DynamicJsonBuffer : public JsonBuffer {
- public:
-  DynamicJsonBuffer() : _next(NULL), _size(0) {}
-
-  ~DynamicJsonBuffer() { delete _next; }
-
-  size_t size() const { return _size + (_next ? _next->size() : 0); }
-
-  size_t blockCount() const { return 1 + (_next ? _next->blockCount() : 0); }
-
-  static const size_t BLOCK_CAPACITY = 32;
-
- protected:
-  virtual void* alloc(size_t bytes) {
-    if (canAllocInThisBlock(bytes))
-      return allocInThisBlock(bytes);
-    else if (canAllocInOtherBlocks(bytes))
-      return allocInOtherBlocks(bytes);
-    else
-      return NULL;
-  }
-
- private:
-  bool canAllocInThisBlock(size_t bytes) const {
-    return _size + bytes <= BLOCK_CAPACITY;
-  }
-
-  void* allocInThisBlock(size_t bytes) {
-    void* p = _buffer + _size;
-    _size += bytes;
-    return p;
-  }
-
-  bool canAllocInOtherBlocks(size_t bytes) const {
-    // by design a DynamicJsonBuffer can't alloc a block bigger than
-    // BLOCK_CAPACITY
-    return bytes <= BLOCK_CAPACITY;
-  }
-
-  void* allocInOtherBlocks(size_t bytes) {
-    if (!_next) {
-      _next = new DynamicJsonBuffer();
-      if (!_next) return NULL;
-    }
-    return _next->alloc(bytes);
-  }
-
-  DynamicJsonBuffer* _next;
-  size_t _size;
-  uint8_t _buffer[BLOCK_CAPACITY];
-};
+typedef DynamicJsonBufferBase<DefaultAllocator> DynamicJsonBuffer;
 }

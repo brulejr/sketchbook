@@ -22,11 +22,8 @@ Sensors::Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int water
 //
 void Sensors::checkForAlerts() {
   if (_stateChange) {
-    _report("alert");
-  }
-  if (!_doorOpen) {
-    if (_motionPresent) {
-      _report("alert");
+    if (_doorOpen || _motionPresent) {
+        _report("alert");
     }
   }
   _stateChange = false;
@@ -39,7 +36,7 @@ void Sensors::handleDoorInterrupt() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   if (interrupt_time - last_interrupt_time > 200) {
-    readDoor(true);
+    _doorOpen = _readDoor();
     _stateChange = true;
   }
   last_interrupt_time = interrupt_time;  
@@ -52,8 +49,11 @@ void Sensors::handleMotionInterrupt() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   if (interrupt_time - last_interrupt_time > 200) {
-    readMotion(true);
-    _stateChange = true;
+    boolean motionPresent = _readMotion();
+    if (motionPresent != _motionPresent) {
+      _motionPresent = motionPresent;
+      _stateChange = true;
+    }
   }
   last_interrupt_time = interrupt_time;  
 }
@@ -62,81 +62,13 @@ void Sensors::handleMotionInterrupt() {
 // 
 //
 void Sensors::measure() {
-  readDoor(true);
-  readHumidity(true);
-  readLight(true);
-  readMotion(true);
-  readWater(true);
-  readTemperature(true);
+  _doorOpen = _readDoor();
+  _humidity = _readHumidity();
+  _lightState = _readLight();
+  _motionPresent = _readMotion();
+  _temperature = _readTemperature();
+  _waterPresent = _readWater();
   _report("measurement");
-}
-
-//------------------------------------------------------------------------------
-// obtains the humidity
-//
-float Sensors::readHumidity(boolean read) {
-  if (read) {
-    sensors_event_t event;
-    _dht->humidity().getEvent(&event);
-    if (isnan(event.relative_humidity)) {
-      _humidity = event.relative_humidity;
-    }
-  }
-  return _humidity;  
-}
-
-//------------------------------------------------------------------------------
-// obtains door measurement
-//
-boolean Sensors::readDoor(boolean read) {
-  if (read) {
-    _doorOpen = (digitalRead(_doorPin) == LOW);
-  }
-  return _doorOpen;
-}
-
-//------------------------------------------------------------------------------
-// obtains light measurement
-//
-int Sensors::readLight(boolean read) {
-  if (read) {
-    _lightState = analogRead(_lightPin);
-  }
-  return _lightState;
-}
-
-//------------------------------------------------------------------------------
-// obtains motion measurement
-//
-boolean Sensors::readMotion(boolean read) {
-  if (read) {
-    _motionPresent = (digitalRead(_motionPin) == HIGH);
-  }
-  return _motionPresent;
-}
-
-//------------------------------------------------------------------------------
-// obtains the temperature
-//
-float Sensors::readTemperature(boolean read) {
-  if (read) {
-    sensors_event_t event;
-    _dht->temperature().getEvent(&event);
-    if (isnan(event.temperature)) {
-      _temperature = event.temperature;
-    }
-  }
-  return _temperature;
-}
-
-//------------------------------------------------------------------------------
-// obtains water measurement
-//
-boolean Sensors::readWater(boolean read) {
-  if (read) {
-    _waterPresent = (digitalRead(_waterPin) == LOW);
-  }
-  return _waterPresent;
 }
 
 //------------------------------------------------------------------------------
@@ -170,10 +102,61 @@ void Sensors::setup() {
   Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println("%");  
   Serial.println("------------------------------------");
 
-  readDoor(true);
-  readLight(true);
-  readMotion(true);
-  readWater(true);
+  measure();
+}
+
+//------------------------------------------------------------------------------
+// obtains door measurement
+//
+boolean Sensors::_readDoor() {
+  return (digitalRead(_doorPin) == LOW);
+}
+
+//------------------------------------------------------------------------------
+// obtains the humidity
+//
+float Sensors::_readHumidity() {
+  sensors_event_t event;
+  _dht->humidity().getEvent(&event);
+  if (isnan(event.relative_humidity)) {
+    return event.relative_humidity;
+  } else {
+    return 0.0;
+  }
+}
+
+//------------------------------------------------------------------------------
+// obtains light measurement
+//
+int Sensors::_readLight() {
+  return analogRead(_lightPin);
+}
+
+//------------------------------------------------------------------------------
+// obtains motion measurement
+//
+boolean Sensors::_readMotion() {
+  return (digitalRead(_motionPin) == HIGH);
+}
+
+//------------------------------------------------------------------------------
+// obtains the temperature
+//
+float Sensors::_readTemperature() {
+  sensors_event_t event;
+  _dht->temperature().getEvent(&event);
+  if (isnan(event.temperature)) {
+    return event.temperature;
+  } else {
+    return 0.0;
+  }
+}
+
+//------------------------------------------------------------------------------
+// obtains water measurement
+//
+boolean Sensors::_readWater() {
+  return (digitalRead(_waterPin) == LOW);
 }
 
 //------------------------------------------------------------------------------
@@ -182,25 +165,23 @@ void Sensors::setup() {
 void Sensors::_report(char* topic) {
     String json = "{";
     
-    json += "\"door\": \""; 
-    json += (_doorOpen ? "OPEN" : "CLOSED"); 
-    json += "\"";
+    json += "\"door\":"; 
+    json += _doorOpen; 
     
-    json += ", \"light\": \""; 
+    json += ",\"light\":"; 
     json += _lightState; 
-    json += "\"";
     
-    json += ", \"motion\": \""; 
-    json += (_motionPresent ? "DETECTED" : "NONE"); 
-    json += "\"";
+    json += ",\"motion\":"; 
+    json += _motionPresent; 
     
-    json += ", \"temperature\": \""; 
+    json += ",\"temperature\":"; 
     json += _temperature; 
-    json += "\"";
     
-    json += ", \"water\": \""; 
-    json += (_waterPresent ? "PRESENT" : "NOT PRESENT"); 
-    json += "\"";
+    json += ",\"humidity\":"; 
+    json += _humidity; 
+    
+    json += ",\"water\":"; 
+    json += _waterPresent; 
     
     json += "}";
     Serial.print(topic); Serial.print(": "); Serial.println(json);

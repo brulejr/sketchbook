@@ -45,7 +45,12 @@ void MQTT::publish(char* topic, const char* message) {
   String topicPath = _deviceName;
   topicPath += "/";
   topicPath += topic;
-  _pubSubClient.publish(topicPath.c_str(), message);
+  boolean status = _pubSubClient.publish(topicPath.c_str(), message);
+  if (!status) {
+    Serial.print("Publishing to '");
+    Serial.print(topicPath);
+    Serial.println("' -- FAILED");
+  }
 }
 
 //------------------------------------------------------------------------------

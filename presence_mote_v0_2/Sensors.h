@@ -20,12 +20,6 @@ class Sensors
     void handleDoorInterrupt();
     void handleMotionInterrupt();
     void measure();
-    boolean readDoor(boolean read);
-    float readHumidity(boolean read);
-    int readLight(boolean read);
-    boolean readMotion(boolean read);
-    boolean readWater(boolean read);
-    float readTemperature(boolean read);
     void setup();
   private:
     DHT_Unified* _dht;
@@ -37,11 +31,18 @@ class Sensors
     int _waterPin;
     volatile boolean _stateChange;
     volatile boolean _doorOpen;
+    volatile boolean _motionPresent;
     int _lightState;
-    boolean _motionPresent;
     float _humidity;
     float _temperature;
     boolean _waterPresent;
+    boolean _readDoor();
+    float _readHumidity();
+    int _readLight();
+    boolean _readMotion();
+    boolean _readWater();
+    float _readTemperature();
+    
     void _report(char* topic);
 };
 
