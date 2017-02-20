@@ -12,11 +12,18 @@
 
 #define DHTTYPE DHT22
 #define BAD_READING -3.4028235E+38
+#define DEFAULT_INTERRUPT_TIMER 200
 
 class Sensors
 {
   public:
-    Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int waterPin, MQTT* mqtt);
+    Sensors(int doorPin, 
+            int dhtPin,
+            int lightPin,
+            int motionPin,
+            int waterPin,
+            MQTT* mqtt,
+            int interruptTimer = DEFAULT_INTERRUPT_TIMER);
     void checkForAlerts();
     void handleDoorInterrupt();
     void handleMotionInterrupt();
@@ -31,6 +38,7 @@ class Sensors
     int _lightPin;
     int _motionPin;
     int _waterPin;
+    int _interruptTimer;
     volatile boolean _stateChange;
     volatile boolean _doorOpen;
     volatile boolean _motionPresent;

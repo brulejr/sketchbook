@@ -8,13 +8,22 @@
 //------------------------------------------------------------------------------
 // checks connectivity
 //
-Sensors::Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int waterPin, MQTT* mqtt) {
+Sensors::Sensors(
+  int doorPin, 
+  int dhtPin, 
+  int lightPin, 
+  int motionPin, 
+  int waterPin, 
+  MQTT* mqtt, 
+  int interruptTimer
+) {
   _doorPin = doorPin;
   _dhtPin = dhtPin;
   _lightPin = lightPin;
   _motionPin = motionPin;
   _waterPin = waterPin;
   _mqtt = mqtt;
+  _interruptTimer = interruptTimer;
 }
 
 //------------------------------------------------------------------------------
@@ -23,11 +32,11 @@ Sensors::Sensors(int doorPin, int dhtPin, int lightPin, int motionPin, int water
 void Sensors::checkForAlerts() {
   if (_stateChange) {
     if (_waterPresent) {
-        _report("alert");
+        _report("alert/water");
     } else if (_doorOpen) {
-        _report("alert");
+        _report("alert/door");
     } else if (_motionPresent) {
-        _report("alert");
+        _report("alert/motion");
     }
   }
   _stateChange = false;
@@ -39,7 +48,7 @@ void Sensors::checkForAlerts() {
 void Sensors::handleDoorInterrupt() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
-  if (interrupt_time - last_interrupt_time > 200) {
+  if (interrupt_time - last_interrupt_time > _interruptTimer) {
     _doorOpen = _readDoor();
     _stateChange = true;
   }
@@ -52,7 +61,7 @@ void Sensors::handleDoorInterrupt() {
 void Sensors::handleMotionInterrupt() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
-  if (interrupt_time - last_interrupt_time > 200) {
+  if (interrupt_time - last_interrupt_time > _interruptTimer) {
     boolean motionPresent = _readMotion();
     if (motionPresent != _motionPresent) {
       _motionPresent = motionPresent;
@@ -68,7 +77,7 @@ void Sensors::handleMotionInterrupt() {
 void Sensors::handleWaterInterrupt() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
-  if (interrupt_time - last_interrupt_time > 200) {
+  if (interrupt_time - last_interrupt_time > _interruptTimer) {
     _waterPresent = _readWater();
     _stateChange = true;
   }

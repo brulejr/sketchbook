@@ -22,6 +22,7 @@
 MQTT mqtt(RESET_WIFI, RESET_FFS);
 
 #define ALERT_PERIOD 1000
+#define INTERRUPT_TIMER 500
 #define MEASUREMENT_PERIOD 10000
 
 #define DOOR_PIN D2
@@ -29,7 +30,7 @@ MQTT mqtt(RESET_WIFI, RESET_FFS);
 #define LIGHT_PIN A0
 #define MOTION_PIN D3
 #define WATER_PIN D4
-Sensors sensors(DOOR_PIN, DHT_PIN, LIGHT_PIN, MOTION_PIN, WATER_PIN, &mqtt);
+Sensors sensors(DOOR_PIN, DHT_PIN, LIGHT_PIN, MOTION_PIN, WATER_PIN, &mqtt, INTERRUPT_TIMER);
 
 static unsigned long last_alert_time = 0;
 static unsigned long last_measurement_time = 0;
