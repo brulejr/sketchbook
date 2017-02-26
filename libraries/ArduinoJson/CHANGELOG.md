@@ -1,6 +1,13 @@
 ArduinoJson: change log
 =======================
 
+v5.8.3
+------
+
+* Fixed an access violation in `DynamicJsonBuffer` when memory allocation fails (issue #433)
+* Added operators `==` and `!=` for two `JsonVariant`s (issue #436)
+* Fixed `JsonVariant::operator[const FlashStringHelper*]` (issue #441)
+
 v5.8.2
 ------
 

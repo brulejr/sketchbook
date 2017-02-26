@@ -87,12 +87,14 @@ void Sensors::handleWaterInterrupt() {
 // 
 //
 void Sensors::measure() {
+  Serial.print("measuring...");
   _doorOpen = _readDoor();
   _humidity = _readHumidity();
   _lightState = _readLight();
   _motionPresent = _readMotion();
   _temperature = _readTemperature();
   _waterPresent = _readWater();
+  Serial.println("DONE");
   _report("measurement");
 }
 
@@ -103,6 +105,7 @@ void Sensors::setup() {
   
   pinMode(_doorPin, INPUT_PULLUP);
   pinMode(_lightPin, INPUT);
+  pinMode(_motionPin, INPUT);
   pinMode(_waterPin, INPUT);
 
   _dht = new DHT_Unified(_dhtPin, DHTTYPE);
@@ -126,8 +129,6 @@ void Sensors::setup() {
   Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println("%");
   Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println("%");  
   Serial.println("------------------------------------");
-
-  measure();
 }
 
 //------------------------------------------------------------------------------
@@ -188,28 +189,30 @@ boolean Sensors::_readWater() {
 // publishes a sensor report
 //
 void Sensors::_report(char* topic) {
-    String json = "{";
+  Serial.print("reporting... ");
+  String json = "{";
     
-    json += "\"door\":"; 
-    json += _doorOpen; 
+  json += "\"door\":"; 
+  json += _doorOpen; 
     
-    json += ",\"light\":"; 
-    json += _lightState; 
+  json += ",\"light\":"; 
+  json += _lightState; 
     
-    json += ",\"motion\":"; 
-    json += _motionPresent; 
+  json += ",\"motion\":"; 
+  json += _motionPresent; 
     
-    json += ",\"temperature\":"; 
-    json += _temperature; 
+  json += ",\"temperature\":"; 
+  json += _temperature; 
     
-    json += ",\"humidity\":"; 
-    json += _humidity; 
+  json += ",\"humidity\":"; 
+  json += _humidity; 
     
-    json += ",\"water\":"; 
-    json += _waterPresent; 
+  json += ",\"water\":"; 
+  json += _waterPresent; 
     
-    json += "}";
-    Serial.print(topic); Serial.print(": "); Serial.println(json);
-    _mqtt->publish(topic, json.c_str());      
+  json += "}";
+  _mqtt->publish(topic, json.c_str());
+  Serial.println("DONE");
+  Serial.print(topic); Serial.print(": "); Serial.println(json);
 }
 

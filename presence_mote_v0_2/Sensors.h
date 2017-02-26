@@ -11,7 +11,7 @@
 #include "MQTT.h"
 
 #define DHTTYPE DHT22
-#define BAD_READING -3.4028235E+38
+#define BAD_READING -999
 #define DEFAULT_INTERRUPT_TIMER 200
 
 class Sensors

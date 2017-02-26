@@ -1,4 +1,4 @@
-Arduino JSON library
+ArduinoJson - C++ JSON library for IoT
 ====================
 
 [![Build status](https://ci.appveyor.com/api/projects/status/m7s53wav1l0abssg/branch/master?svg=true)](https://ci.appveyor.com/project/bblanchon/arduinojson/branch/master) [![Build Status](https://travis-ci.org/bblanchon/ArduinoJson.svg?branch=master)](https://travis-ci.org/bblanchon/ArduinoJson) [![Coverage Status](https://img.shields.io/coveralls/bblanchon/ArduinoJson.svg)](https://coveralls.io/r/bblanchon/ArduinoJson?branch=master) [![Star this project](http://githubbadges.com/star.svg?user=bblanchon&repo=ArduinoJson&style=flat&color=fff&background=007ec6)](https://github.com/bblanchon/ArduinoJson)
@@ -36,7 +36,7 @@ Works on
 * RedBearLab boards (BLE Nano...)
 * Computers (Windows, Linux, OSX...)
 
-See [FAQ: Compatibility issues](https://github.com/bblanchon/ArduinoJson/wiki/Compatibility-issues)
+See [FAQ: Compatibility issues](https://bblanchon.github.io/ArduinoJson/faq/compilation-fails-device-crashes-nothing-on-serial-console)
 
 Quick start
 -----------
@@ -82,7 +82,10 @@ root.printTo(Serial);
 Documentation
 -------------
 
-The documentation is available online in the [Arduino JSON wiki](https://github.com/bblanchon/ArduinoJson/wiki)
+The documentation is available online in the [ArduinoJson wiki](https://github.com/bblanchon/ArduinoJson/wiki).
+
+The [ArduinoJson Assistant](https://bblanchon.github.io/ArduinoJson/assistant/) helps you get started with the library.
+
 
 Testimonials
 ------------
@@ -133,6 +136,7 @@ Special thanks to the following persons and companies who made generous donation
 * Yoeri Kroon <img alt='Netherlands' src='https://cdnjs.cloudflare.com/ajax/libs/emojione/2.1.4/assets/svg/1f1f3-1f1f1.svg' width='18' height='18'>
 * Andrew Melvin <img alt='United Kingdom' src='https://cdnjs.cloudflare.com/ajax/libs/emojione/2.1.4/assets/svg/1f1ec-1f1e7.svg' width='18' height='18'>
 * Doanh Luong <img alt ='Vietnam' src='https://cdnjs.cloudflare.com/ajax/libs/emojione/2.1.4/assets/svg/1f1fb-1f1f3.svg' width='18' height='18'>
+* Christoph Schmidt <img alt ='Germany' src='https://cdnjs.cloudflare.com/ajax/libs/emojione/2.1.4/assets/svg/1f1e9-1f1ea.svg' width='18' height='18'>
 
 ---
 

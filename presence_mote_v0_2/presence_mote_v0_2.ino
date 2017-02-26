@@ -27,16 +27,22 @@ MQTT mqtt(RESET_WIFI, RESET_FFS);
 
 #define DOOR_PIN D2
 #define DHT_PIN D5
+#define LED_PIN D7
 #define LIGHT_PIN A0
-#define MOTION_PIN D3
+#define MOTION_PIN D6
 #define WATER_PIN D4
 Sensors sensors(DOOR_PIN, DHT_PIN, LIGHT_PIN, MOTION_PIN, WATER_PIN, &mqtt, INTERRUPT_TIMER);
 
 static unsigned long last_alert_time = 0;
 static unsigned long last_measurement_time = 0;
 
+long heartbeat_array[] = { 50, 100, 150, 2000 };
+int heartbeat_idx = 1;
+static unsigned long last_heartbeat_time = 0;
+
 void setup() {
   Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
   mqtt.setup();
   sensors.setup();
   attachInterrupt(digitalPinToInterrupt(DOOR_PIN), _doorStateChanged, CHANGE);
@@ -57,6 +63,23 @@ void loop() {
   if (current_measurement_time - last_measurement_time > MEASUREMENT_PERIOD) {
     last_measurement_time = current_measurement_time;
     sensors.measure();
+  }
+
+  heartbeat(1.0);
+}
+
+void heartbeat(float tempo) {
+  unsigned long current_heartbeat_time = millis();
+  if ((current_heartbeat_time - last_heartbeat_time) > (long)(heartbeat_array[heartbeat_idx] * tempo)) {
+    heartbeat_idx++;
+    if (heartbeat_idx > 3) heartbeat_idx = 0;
+
+    if ((heartbeat_idx % 2) == 0) {     // modulo 2 operator will be true on even counts
+      digitalWrite(LED_PIN, HIGH);
+    } else {
+      digitalWrite(LED_PIN, LOW);
+    }
+    last_heartbeat_time = current_heartbeat_time;
   }
 }
 
